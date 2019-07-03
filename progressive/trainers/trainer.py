@@ -14,7 +14,7 @@ from utils import get_gan_loss, get_require_type
 from losses.losses import *
 
 class Trainer():
-	def __init__(self, loss_type, netD, netG, device, train_ds, val_ds, lr_D = 0.0002, lr_G = 0.0002, rec_weight = 10, ds_weight = 8, resample = True, weight_clip = None, use_gradient_penalty = False, loss_interval = 50, image_interval = 50, save_img_dir = 'saved_images/'):
+	def __init__(self, loss_type, netD, netG, device, train_ds, val_ds, lr_D = 0.0002, lr_G = 0.0002, rec_weight = 10, ds_weight = 8, use_rec_feature = False, resample = True, weight_clip = None, use_gradient_penalty = False, loss_interval = 50, image_interval = 50, save_img_dir = 'saved_images/'):
 		self.netD = netD
 		self.netG = netG
 		self.train_ds = train_ds
@@ -26,6 +26,7 @@ class Trainer():
 		self.weight_clip = weight_clip
 		self.use_gradient_penalty = use_gradient_penalty
 		self.rec_weight = rec_weight
+		self.use_rec_feature = use_rec_feature
 		self.ds_weight = ds_weight
 
 		self.nz = self.netG.nz
@@ -125,13 +126,14 @@ class Trainer():
 						fake_y = self.netG(x, p, noise)
 
 					if(self.require_type == 0):
-						c_xf = self.netD(x, fake_y)		# (bs, 1, 1, 1)
+						c_xr = None
+						c_xf, f1 = self.netD(x, fake_y, True)		# (bs, 1, 1, 1)
 						c_xf = c_xf.view(-1)						# (bs)	
 						errG_1 = self.loss.g_loss(c_xf)
 					if(self.require_type == 1 or self.require_type == 2):
-						c_xr = self.netD(x, y)				# (bs, 1, 1, 1)
+						c_xr, f2 = self.netD(x, y, True)				# (bs, 1, 1, 1)
 						c_xr = c_xr.view(-1)						# (bs)
-						c_xf = self.netD(x, fake_y)		# (bs, 1, 1, 1)
+						c_xf, f1 = self.netD(x, fake_y, True)		# (bs, 1, 1, 1)
 						c_xf = c_xf.view(-1)						# (bs)		
 						errG_1 = self.loss.g_loss(c_xr, c_xf)
 
@@ -147,7 +149,17 @@ class Trainer():
 					if(self.rec_weight == 0):
 						rec_loss = 0
 					else:
-						rec_loss = l1(fake_y, y)
+						if(self.use_rec_feature):
+							rec_loss = 0
+							if(c_xr == None):
+								c_xr, f2 = self.netD(x, y, True)				# (bs, 1, 1, 1)
+								c_xr = c_xr.view(-1)						# (bs)
+								for f1_, f2_ in zip(f1, f2):
+									rec_loss += (f1_ - f2_).abs().mean()
+								rec_loss /= len(f1)
+
+						else:
+							rec_loss = l1(fake_y, y)
 
 					errG = errG_1 + rec_loss * self.rec_weight + ds_loss * self.ds_weight
 					errG.backward()
