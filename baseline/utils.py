@@ -194,7 +194,7 @@ def get_require_type(loss_type):
 		require_type = -1
 	return require_type
 
-def get_gan_loss(loss_type):
+def get_gan_loss(device, loss_type):
 	loss_dict = {'SGAN':SGAN, 'LSGAN':LSGAN, 'HINGEGAN':HINGEGAN, 'WGAN':WGAN, 'RASGAN':RASGAN, 'RALSGAN':RALSGAN, 'RAHINGEGAN':RAHINGEGAN, 'QPGAN':QPGAN}
 	require_type = get_require_type(loss_type)
 

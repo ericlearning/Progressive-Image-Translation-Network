@@ -35,7 +35,7 @@ class Trainer():
 
 		self.loss_type = loss_type
 		self.require_type = get_require_type(self.loss_type)
-		self.loss = get_gan_loss(self.loss_type)
+		self.loss = get_gan_loss(self.device, self.loss_type)
 		self.ds_loss = DSGAN_Loss(self.device, self.nz)
 
 		self.optimizerD = optim.Adam(self.netD.parameters(), lr = self.lr_D, betas = (0, 0.9))
