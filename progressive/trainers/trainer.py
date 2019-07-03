@@ -144,7 +144,7 @@ class Trainer():
 						noise2 = generate_noise(bs, self.nz, self.device)
 						fake_y1 = self.netG(x, noise1)
 						fake_y2 = self.netG(x, noise2)
-						ds_loss = self.ds_loss(fake_y1, fake_y2, noise1, noise2)
+						ds_loss = self.ds_loss.get_loss(fake_y1, fake_y2, noise1, noise2)
 					
 					if(self.rec_weight == 0):
 						rec_loss = 0
