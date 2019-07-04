@@ -6,9 +6,9 @@ import scipy
 from tqdm import tqdm
 
 # parameters
-audio_path = 'input_wav/input.wav'
-rec_audio_path1 = 'rec_wav/reconstruction.wav'
-rec_audio_path2 = 'mel_rec_wav/reconstruction.wav'
+audio_path = 'input.wav'
+rec_audio_path1 = 'stft.wav'
+rec_audio_path2 = 'mel.wav'
 sample_rate = 22050
 pre_emphasis_rate = 0.97
 n_fft = 2048
@@ -16,7 +16,7 @@ win_length = 1000
 hop_length = 250
 n_mels = 256
 power = 1
-shrink_size = 4
+shrink_size = 1.5
 
 griffin_lim_iter = 300
 
@@ -160,3 +160,35 @@ def griffin_lim(input_, griffin_lim_iter, n_fft, win_length, hop_length):
 	wave = np.real(librosa.core.istft(tmp, win_length = win_length, hop_length = hop_length))
 
 	return wave
+
+# read audio
+audio = read_audio(audio_path, sample_rate, pre_emphasis_rate)
+
+# get stft
+stft = get_stft(audio, n_fft, win_length, hop_length)
+
+# get mel
+mel = get_mel(stft, sample_rate, n_fft, n_mels, power, shrink_size)
+
+# stft to spectrogram
+_ = stft_to_spectrogram(stft, threshold, 'stft.png')
+
+# mel to spectrogram
+_ = mel_to_spectrogram(mel, threshold, 'mel.png')
+
+# spectrogram to stft
+new_stft = spectrogram_to_stft('stft.png', threshold)
+
+# spectrogram to mel
+new_mel = spectrogram_to_mel('mel.png', threshold)
+
+# mel to stft
+new_mel_to_stft = mel_to_stft(new_mel, sample_rate, n_fft, n_mels, shrink_size, power)
+
+# stft to wave
+new_stft_wave = griffin_lim(new_stft, griffin_lim_iter, n_fft, win_length, hop_length)
+new_mel_to_stft_wave = griffin_lim(new_mel_to_stft, griffin_lim_iter, n_fft, win_length, hop_length)
+
+# save wave
+librosa.output.write_wav(rec_audio_path1, new_stft_wave, sample_rate, norm = True)
+librosa.output.write_wav(rec_audio_path2, new_mel_to_stft_wave, sample_rate, norm = True)

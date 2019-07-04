@@ -131,7 +131,7 @@ class DSGAN_Loss(nn.Module):
 
 	def get_loss(self, fake_y1, fake_y2, noise1, noise2):
 		fake_y_diff = self.l1_batch(fake_y1, fake_y2).sum(1).sum(1).sum(1) / (fake_y1.shape[1]*fake_y1.shape[2]*fake_y1.shape[3])
-		noise_diff = self.l1_batch(noise1, noise2).sum(1).reshape(-1) / self.nz
+		noise_diff = self.l1_batch(noise1, noise2).sum(1).sum(1).sum(1) / self.nz
 		ds_loss = -torch.mean(fake_y_diff / (noise_diff+1e-5))
 		return ds_loss
 
