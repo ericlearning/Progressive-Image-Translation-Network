@@ -5,7 +5,7 @@ from torchvision import transforms
 from dataset import Dataset
 from architectures.architecture import UNet_G, PatchGan_D_70x70
 from trainers.trainer import Trainer
-from utils import save, load
+from utils.utils import save, load
 
 train_dir_name = ['data/file/train/input', 'data/file/train/target']
 val_dir_name = ['data/file/val/input', 'data/file/val/target']

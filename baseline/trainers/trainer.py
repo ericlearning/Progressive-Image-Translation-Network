@@ -9,8 +9,8 @@ import torch.autograd as autograd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
-from utils import set_lr, get_lr, generate_noise, save, get_sample_images_list, get_sample_images_list_noise, get_display_samples, resize_input
-from utils import get_gan_loss, get_require_type
+from utils.utils import set_lr, get_lr, generate_noise, save, get_sample_images_list, get_sample_images_list_noise, get_display_samples, resize_input
+from utils.utils import get_gan_loss, get_require_type
 from losses.losses import *
 
 class Trainer():
