@@ -31,9 +31,9 @@ class ConvBlock(nn.Module):
 
 		if(use_pixelshuffle):
 			if(self.pad_type == 'Zero'):
-				self.conv = nn.Conv2d(ni, no // 4, ks, stride, pad, bias = False)
+				self.conv = nn.Conv2d(ni, no * 4, ks, stride, pad, bias = False)
 			elif(self.pad_type == 'Reflection'):
-				self.conv = nn.Conv2d(ni, no // 4, ks, stride, 0, bias = False)
+				self.conv = nn.Conv2d(ni, no * 4, ks, stride, 0, bias = False)
 				self.reflection = nn.ReflectionPad2d(pad)
 			self.pixelshuffle = nn.PixelShuffle(2)
 		else:
@@ -64,11 +64,11 @@ class ConvBlock(nn.Module):
 			self.act = Nothing()
 
 	def forward(self, x):
-		if(self.pad_type == 'Reflection'):
-			x = self.reflection(x)
 		if(self.use_pixelshuffle == True):
 			out = self.pixelshuffle(out)
 		out = self.conv(x)
+		if(self.pad_type == 'Reflection'):
+			x = self.reflection(x)
 		if(self.use_bn == True and self.norm_type != 'spectralnorm'):
 			out = self.bn(out)
 		out = self.act(out)
@@ -200,7 +200,7 @@ class UNet_G(nn.Module):
 
 		self.dec_convs = nn.ModuleList([])
 		cur_block_ic = self.cur_dim[-1]
-		if(self.use_pixelshuffle)
+		if(self.use_pixelshuffle):
 			for i, dim in enumerate(list(reversed(self.cur_dim))[1:] + [self.oc]):
 				if(i == 0):
 					self.dec_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = False, activation_type = None, use_pixelshuffle = True))

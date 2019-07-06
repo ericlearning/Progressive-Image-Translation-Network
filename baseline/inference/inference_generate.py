@@ -1,4 +1,3 @@
-import copy
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -32,16 +31,11 @@ def generate(netG, x, z, oc, sz, device):
 	out = (out + 1) / 2.0
 	return out
 
-def interpolation(start, end, step_num, cur_step):
-	return start * ((step_num - cur_step) / step_num) + end * (cur_step / step_num)
-
-cv2.namedWindow('Input')
-cv2.namedWindow('Output')
-
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-nz = 8
+nz, noise_per_image = 8, 20
 input_img_dir = 'samples'
+output_img_dir = 'generated'
 input_img_list = os.listdir(input_img_dir)
 model_path = 'saved/.pth'
 
@@ -50,42 +44,11 @@ netG = UNet_G(ic, oc, sz, nz, norm_type).to(device)
 netG.load_state_dict(torch.load(model_path, map_location = 'cpu'))
 netG.eval()
 
-cnt, total_num = 0, 10
-image = get_image(input_img_dir, input_img_list, cnt, sz)
-noise = generate_noise(1, nz, device)
-img = transform_image(image, sz)
-out = generate(netG, img, noise, oc, sz, device)
-
-while(1):
-	cv2.imshow('Input', image)
-	cv2.imshow('Output', out)
-
-	key = cv2.waitKey(1) & 0xFF
-
-	if(key == ord('q')):
-		break
-
-	elif(key == ord('r')):
+out_cnt = 0
+for cnt in range(len(input_img_list)):
+	image = get_image(input_img_dir, input_img_list, cnt, sz)
+	image = transform_image(image, sz)
+	for i in range(noise_per_image):
 		noise = generate_noise(1, nz, device)
-		out = generate(netG, img, noise, oc, sz, device)
-
-	elif(key == ord('t')):
-		en = generate_noise(1, nz, device)
-		sn = copy.deepcopy(noise)
-		for i in range(10):
-			cur_noise = interpolation(sn, en, 10, i+1)
-			out = generate(netG, img, cur_noise, oc, sz, device)
-			cv2.imshow('Input', image)
-			cv2.imshow('Output', out)
-			cv2.waitKey(1)
-		noise = copy.deepcopy(en)
-
-	elif(key == ord('e')):
-		cnt += 1
-		if(cnt>=total_num):
-			cnt = 0
-		image = get_image(input_img_dir, input_img_list, cnt, sz)
-		img = transform_image(image, sz)
-		out = generate(netG, img, noise, oc, sz, device)
-
-cv2.destroyAllWindows()
+		out = generate(netG, image, noise, oc, sz, device)
+		cv2.imwrite(os.path.join(output_img_dir, str(out_cnt)+'.png'), out)
