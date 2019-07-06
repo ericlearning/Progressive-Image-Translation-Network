@@ -99,7 +99,8 @@ def mel_to_spectrogram(mel, threshold, out_name):
 
 	# convert to [0, 255] to save it as an image
 	save_img = (mel_spec / (-threshold) * 255.0).astype('uint8')
-	cv2.imwrite(out_name, save_img)
+	if(out_name != None):
+		cv2.imwrite(out_name, save_img)
 
 	return save_img
 
