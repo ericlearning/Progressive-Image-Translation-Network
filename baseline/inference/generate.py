@@ -4,10 +4,10 @@ import torch.nn as nn
 from torchvision import transforms
 import os, cv2, sys
 import numpy as np
-from utils import *
 sys.path.append('..')
 from architectures.architecture import UNet_G
 from utils.griffin_lim import *
+from utils.inference_utils import *
 from utils.utils import generate_noise
 from PIL import Image
 

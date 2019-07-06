@@ -64,22 +64,12 @@ class ConvBlock(nn.Module):
 			self.act = Nothing()
 
 	def forward(self, x):
+		out = x
+		if(self.pad_type == 'Reflection'):
+			out = self.reflection(out)
+		out = self.conv(out)
 		if(self.use_pixelshuffle == True):
 			out = self.pixelshuffle(out)
-		out = self.conv(x)
-		if(self.pad_type == 'Reflection'):
-			x = self.reflection(x)
-		if(self.use_bn == True and self.norm_type != 'spectralnorm'):
-			out = self.bn(out)
-		out = self.act(out)
-		return out
-
-	def forward(self, x):
-		if(self.pad_type == 'Reflection'):
-			x = self.reflection(x)
-		if(self.use_pixelshuffle == True):
-			out = self.pixelshuffle(out)
-		out = self.conv(x)
 		if(self.use_bn == True and self.norm_type != 'spectralnorm'):
 			out = self.bn(out)
 		out = self.act(out)
