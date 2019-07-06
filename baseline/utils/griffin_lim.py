@@ -133,6 +133,23 @@ def spectrogram_to_mel(in_name, threshold):
 
 	return mel
 
+def spectrogram_img_to_mel(spectrogram, threshold):
+	# convert back to [0, -threshold]
+	spec_img = cv2.cvtColor(spectrogram, cv2.COLOR_BGR2GRAY)
+	print(np.max(spec_img), np.min(spec_img))
+	spec_img = (spec_img.astype('float32')) / 255.0 * (-threshold)
+	print(np.max(spec_img), np.min(spec_img))
+
+	# power 10
+	mel_spec = np.power(10, spec_img)
+	#print(np.max(spec_img), np.min(spec_img))
+
+	# //TODO
+	mel = mel_spec
+	print(mel.shape)
+
+	return mel
+
 def mel_to_stft(mel, sample_rate, n_fft, n_mels, shrink_size, power):
 	mel_bank = librosa.filters.mel(sr = sample_rate, n_fft = n_fft, n_mels = n_mels)
 

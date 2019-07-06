@@ -13,10 +13,11 @@ from PIL import Image
 def get_image(img_dir, name_list, cnt, sz):
 	image = cv2.imread(os.path.join(img_dir, name_list[cnt]))
 	image = cv2.resize(image, (sz, sz))
-	return image
+	ratio = sz / image.shape[1]
+	return image, ratio
 
-def transform_image(image, sz):
-	if(image.shape[2] == 1):
+def transform_image(image, sz, ic):
+	if(ic == 1):
 		dt = transforms.Compose([
 			transforms.Resize((sz, sz)),
 			transforms.Grayscale(1),
@@ -59,15 +60,16 @@ netG.eval()
 
 out_cnt = 0
 for cnt in range(len(input_img_list)):
-	image = get_image(input_img_dir, input_img_list, cnt, sz)
-	image = transform_image(image, sz)
+	image, ratio = get_image(input_img_dir, input_img_list, cnt, sz)
+	image = transform_image(image, sz, ic)
 	for i in range(noise_per_image):
 		noise = generate_noise(1, nz, device)
 		out = generate(netG, image, noise, oc, sz, device)
 		cv2.imwrite(os.path.join(output_img_dir, str(out_cnt)+'.png'), out)
-
 		if(output_wav_dir != None):
-			mel = spectrogram_to_mel(os.path.join(output_img_dir, str(out_cnt)+'.png'), 5.0)
+			spec = cv2.imread(os.path.join(output_img_dir, str(out_cnt)+'.png'))
+			spec = cv2.resize(spec, (spec.shape[0], spec.shape[1] * (1 / ratio)))
+			mel = spectrogram_img_to_mel(spec, 5.0)
 			stft = mel_to_stft(mel, 22050, 2048, 256, 4, 1)
 			wave = griffin_lim(stft, 100, 2048, 1000, 250)
 			librosa.output.write_wav(os.path.join(output_wav_dir, str(out_cnt)+'.wav'), wave, 22050, norm = True)

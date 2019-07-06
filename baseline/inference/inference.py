@@ -15,8 +15,8 @@ def get_image(img_dir, name_list, cnt, sz):
 	image = cv2.resize(image, (sz, sz))
 	return image
 
-def transform_image(image, sz):
-	if(image.shape[2] == 1):
+def transform_image(image, sz, ic):
+	if(ic == 1):
 		dt = transforms.Compose([
 			transforms.Resize((sz, sz)),
 			transforms.Grayscale(1),
@@ -63,7 +63,7 @@ netG.eval()
 cnt, total_num = 0, 10
 image = get_image(input_img_dir, input_img_list, cnt, sz)
 noise = generate_noise(1, nz, device)
-img = transform_image(image, sz)
+img = transform_image(image, sz, ic)
 out = generate(netG, img, noise, oc, sz, device)
 
 while(1):
@@ -95,7 +95,7 @@ while(1):
 		if(cnt>=total_num):
 			cnt = 0
 		image = get_image(input_img_dir, input_img_list, cnt, sz)
-		img = transform_image(image, sz)
+		img = transform_image(image, sz, ic)
 		out = generate(netG, img, noise, oc, sz, device)
 
 cv2.destroyAllWindows()
