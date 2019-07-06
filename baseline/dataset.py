@@ -7,27 +7,30 @@ from torch.utils.data import DataLoader
 from PIL import Image
 
 class Dataset():
-	def __init__(self, train_dir, basic_types = None, shuffle = True):
+	def __init__(self, train_dir, basic_types = None, shuffle = True, single_channel = False):
 		self.train_dir = train_dir
 		self.basic_types = basic_types
 		self.shuffle = shuffle
+		self.single_channel = single_channel
 
 	def get_loader(self, sz, bs, num_workers = 1):
 		if(self.basic_types == 'Pix2Pix'):
+			if(self.single_channel):
+				norm = transforms.Normalize([0.5], [0.5])
+			else:
+				norm = transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 			dt = {
 				'input' : transforms.Compose([
 					transforms.Resize((sz, sz)),
-					transforms.ToTensor(),
-					transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+					transforms.ToTensor()
 				]),
 				'target' : transforms.Compose([
 					transforms.Resize((sz, sz)),
-					transforms.ToTensor(),
-					transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+					transforms.ToTensor()
 				])
 			}
-			input_transform = dt['input']
-			target_transform = dt['target']
+			input_transform = norm(dt['input'])
+			target_transform = norm(dt['target'])
 
 			train_dataset = Pix2Pix_Dataset(self.train_dir[0], self.train_dir[1], input_transform, target_transform)
 			train_loader = DataLoader(train_dataset, batch_size = bs, shuffle = self.shuffle, num_workers = num_workers)

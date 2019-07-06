@@ -5,6 +5,17 @@ import copy
 import scipy
 from tqdm import tqdm
 
+# sample_rate : 22050
+# pre_emphasis_rate : 0.97
+# n_fft : 2048
+# win_length : 1000
+# hop_length : 250
+# n_mels : 256
+# power : 1
+# shrink_size : 4
+# threshold : 5
+# griffin_lim_iter : 100
+
 def read_audio(audio_path, sample_rate, pre_emphasis_rate):
 	# get the time_series data of raw wav audio
 	y, _ = librosa.load(path = audio_path, sr = sample_rate, mono = True)

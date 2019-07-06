@@ -67,7 +67,10 @@ def get_display_samples(samples, num_samples_x, num_samples_y):
 	display = np.zeros((sz*num_samples_y, sz*num_samples_x, nc))
 	for i in range(num_samples_y):
 		for j in range(num_samples_x):
-			display[i*sz:(i+1)*sz, j*sz:(j+1)*sz, :] = cv2.cvtColor(samples[i*num_samples_x+j]*255.0, cv2.COLOR_BGR2RGB)
+			if(nc == 1):
+				display[i*sz:(i+1)*sz, j*sz:(j+1)*sz, :] = samples[i*num_samples_x+j]*255.0
+			else:
+				display[i*sz:(i+1)*sz, j*sz:(j+1)*sz, :] = cv2.cvtColor(samples[i*num_samples_x+j]*255.0, cv2.COLOR_BGR2RGB)
 	return display.astype(np.uint8)
 
 def save(filename, netD, netG, optD, optG):

@@ -1,3 +1,4 @@
+import librosa
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -15,19 +16,23 @@ def get_image(img_dir, name_list, cnt, sz):
 	return image
 
 def transform_image(image, sz):
+	if(image.shape[2] == 1):
+		norm = transforms.Normalize([0.5], [0.5])
+	else:
+		norm = transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 	dt = transforms.Compose([
 		transforms.Resize((sz, sz)),
 		transforms.ToTensor(),
-		transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 	])
 	out = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-	out = dt(Image.fromarray(out)).float().unsqueeze(0)
+	out = norm(dt(Image.fromarray(out))).float().unsqueeze(0)
 	return out
 
 def generate(netG, x, z, oc, sz, device):
 	out = netG(x.to(device), z.to(device)).cpu().detach().numpy()
 	out = out.reshape(oc, sz, sz).transpose(1, 2, 0)
-	out = cv2.cvtColor(out, cv2.COLOR_RGB2BGR)
+	if(oc > 1):
+		out = cv2.cvtColor(out, cv2.COLOR_RGB2BGR)
 	out = (out + 1) / 2.0
 	return out
 
@@ -38,6 +43,8 @@ input_img_dir = 'samples'
 output_img_dir = 'generated'
 input_img_list = os.listdir(input_img_dir)
 model_path = 'saved/.pth'
+
+output_wav_dir = None
 
 sz, ic, oc, norm_type = 256, 3, 3, 'instancenorm'
 netG = UNet_G(ic, oc, sz, nz, norm_type).to(device)
@@ -52,3 +59,11 @@ for cnt in range(len(input_img_list)):
 		noise = generate_noise(1, nz, device)
 		out = generate(netG, image, noise, oc, sz, device)
 		cv2.imwrite(os.path.join(output_img_dir, str(out_cnt)+'.png'), out)
+
+		if(output_wav_dir != None):
+			mel = spectrogram_to_mel(os.path.join(output_img_dir, str(out_cnt)+'.png'), 5.0)
+			stft = mel_to_stft(mel, 22050, 2048, 256, 4, 1)
+			wave = griffin_lim(stft, 100, 2048, 1000, 250)
+			librosa.output.write_wav(os.path.join(output_wav_dir, str(out_cnt)+'.wav'), wave, 22050, norm = True)
+
+		out_cnt += 1
