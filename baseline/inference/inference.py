@@ -28,9 +28,9 @@ netG.eval()
 
 cnt, total_num = 0, 10
 image, _ = get_image(os.path.join(input_img_dir, input_img_list[cnt]), sz)
+image = transform_image(image, sz, ic)
 noise = generate_noise(1, nz, device)
-img = transform_image(image, sz, ic)
-out = generate(netG, img, noise, oc, sz, device)
+out = generate(netG, image, noise, oc, sz, device)
 
 while(1):
 	cv2.imshow('Input', image)
@@ -43,14 +43,14 @@ while(1):
 
 	elif(key == ord('r')):
 		noise = generate_noise(1, nz, device)
-		out = generate(netG, img, noise, oc, sz, device)
+		out = generate(netG, image, noise, oc, sz, device)
 
 	elif(key == ord('t')):
 		en = generate_noise(1, nz, device)
 		sn = copy.deepcopy(noise)
 		for i in range(10):
 			cur_noise = interpolation(sn, en, 10, i+1)
-			out = generate(netG, img, cur_noise, oc, sz, device)
+			out = generate(netG, image, cur_noise, oc, sz, device)
 			cv2.imshow('Input', image)
 			cv2.imshow('Output', out)
 			cv2.waitKey(1)
@@ -61,7 +61,7 @@ while(1):
 		if(cnt>=total_num):
 			cnt = 0
 		image, _ = get_image(os.path.join(input_img_dir, input_img_list[cnt]), sz)
-		img = transform_image(image, sz, ic)
-		out = generate(netG, img, noise, oc, sz, device)
+		image = transform_image(image, sz, ic)
+		out = generate(netG, image, noise, oc, sz, device)
 
 cv2.destroyAllWindows()
