@@ -17,20 +17,20 @@ cv2.namedWindow('Output')
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 nz = 8
-input_img_dir = 'samples'
-input_img_list = os.listdir(input_img_dir)
+input_wav_dir = 'samples'
+input_wav_list = os.listdir(input_wav_dir)
 model_path = 'saved/.pth'
 
-sz, ic, oc, use_bn, norm_type = 256, 3, 3, True, 'instancenorm'
+sz, ic, oc, use_bn, norm_type = 256, 1, 1, True, 'instancenorm'
 netG = UNet_G(ic, oc, sz, nz, use_bn, norm_type).to(device)
 netG.load_state_dict(torch.load(model_path, map_location = 'cpu'))
 netG.eval()
 
 cnt, total_num = 0, 10
-image, _ = get_image(os.path.join(input_img_dir, input_img_list[cnt]), sz)
+image, _ = get_image(os.path.join(input_wav_dir, input_wav_list[cnt]), sz)
+image = transform_image(image, sz, ic)
 noise = generate_noise(1, nz, device)
-img = transform_image(image, sz, ic)
-out = generate(netG, img, noise, oc, sz, device)
+out = generate(netG, image, noise, oc, sz, device)
 
 while(1):
 	cv2.imshow('Input', image)
@@ -43,14 +43,14 @@ while(1):
 
 	elif(key == ord('r')):
 		noise = generate_noise(1, nz, device)
-		out = generate(netG, img, noise, oc, sz, device)
+		out = generate(netG, image, noise, oc, sz, device)
 
 	elif(key == ord('t')):
 		en = generate_noise(1, nz, device)
 		sn = copy.deepcopy(noise)
 		for i in range(10):
 			cur_noise = interpolation(sn, en, 10, i+1)
-			out = generate(netG, img, cur_noise, oc, sz, device)
+			out = generate(netG, image, cur_noise, oc, sz, device)
 			cv2.imshow('Input', image)
 			cv2.imshow('Output', out)
 			cv2.waitKey(1)
@@ -60,8 +60,8 @@ while(1):
 		cnt += 1
 		if(cnt>=total_num):
 			cnt = 0
-		image, _ = get_image(os.path.join(input_img_dir, input_img_list[cnt]), sz)
-		img = transform_image(image, sz, ic)
-		out = generate(netG, img, noise, oc, sz, device)
+		image, _ = get_image(os.path.join(input_wav_dir, input_wav_list[cnt]), sz)
+		image = transform_image(image, sz, ic)
+		out = generate(netG, image, noise, oc, sz, device)
 
 cv2.destroyAllWindows()

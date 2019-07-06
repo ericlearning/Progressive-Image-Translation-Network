@@ -12,12 +12,12 @@ val_dir_name = ['data/file/val/input', 'data/file/val/target']
 
 lr_D, lr_G, bs = 0.0002, 0.0002, 8
 sz, ic, oc, use_sigmoid = 256, 3, 3, False
-norm_type = 'instancenorm'
+use_bn, norm_type = True, 'instancenorm'
 
 train_data = Dataset(train_dir_name, basic_types = 'Pix2Pix', shuffle = True, single_channel = False)
 val_data = Dataset(val_dir_name, basic_types = 'Pix2Pix', shuffle = False, single_channel = False)
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-netD = PatchGan_D_70x70(ic, oc, use_sigmoid, norm_type).to(device)
+netD = PatchGan_D_70x70(ic, oc, use_sigmoid, use_bn, norm_type).to(device)
 netG = UNet_G(ic, oc, sz, nz = 8, norm_type = norm_type).to(device)
 
 trn_dl = train_data.get_loader(256, bs)

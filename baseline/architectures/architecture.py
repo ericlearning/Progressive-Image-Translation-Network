@@ -123,15 +123,16 @@ class DeConvBlock(nn.Module):
 		return out
 
 class PatchGan_D_70x70(nn.Module):
-	def __init__(self, ic_1, ic_2, use_sigmoid = True, norm_type = 'instancenorm', return_feature = False):
+	def __init__(self, ic_1, ic_2, use_sigmoid = True, use_bn = True, norm_type = 'instancenorm', return_feature = False):
 		super(PatchGan_D_70x70, self).__init__()
 		self.ic_1 = ic_1
 		self.ic_2 = ic_2
 		self.use_sigmoid = use_sigmoid
+		self.use_bn = use_bn
 		self.conv1 = ConvBlock(self.ic_1 + self.ic_2, 64, 4, 2, 1, use_bn = False, activation_type = 'leakyrelu')
-		self.conv2 = ConvBlock(64, 128, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv3 = ConvBlock(128, 256, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv4 = ConvBlock(256, 512, 4, 1, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
+		self.conv2 = ConvBlock(64, 128, 4, 2, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = 'leakyrelu')
+		self.conv3 = ConvBlock(128, 256, 4, 2, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = 'leakyrelu')
+		self.conv4 = ConvBlock(256, 512, 4, 1, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = 'leakyrelu')
 		self.conv5 = nn.Conv2d(512, 1, 4, 1, 1, bias = False)
 		self.sigmoid = nn.Sigmoid()
 		self.nothing = Nothing()
@@ -172,12 +173,13 @@ def inverse_receptive_calculator(output_size, ks, stride, pad):
 	return ((output_size - 1) * stride) + ks
 
 class UNet_G(nn.Module):
-	def __init__(self, ic, oc, sz, nz = None, norm_type = 'instancenorm', use_norm_bottleneck = False, use_pixelshuffle = False):
+	def __init__(self, ic, oc, sz, nz = None, use_bn = True, norm_type = 'instancenorm', use_norm_bottleneck = False, use_pixelshuffle = False):
 		super(UNet_G, self).__init__()
 		self.ic = ic
 		self.oc = oc
 		self.sz = sz
 		self.nz = nz
+		self.use_bn = use_bn
 		self.use_norm_btnk = use_norm_bottleneck
 		self.use_pixelshuffle = use_pixelshuffle
 		self.dims = {
@@ -206,7 +208,7 @@ class UNet_G(nn.Module):
 			elif(i == len(self.cur_dim) - 1):
 				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = self.use_norm_btnk, norm_type = norm_type, activation_type = None))
 			else:
-				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = None))
+				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = None))
 			cur_block_ic = dim
 
 		self.dec_convs = nn.ModuleList([])
@@ -218,7 +220,7 @@ class UNet_G(nn.Module):
 				elif(i == len(self.cur_dim) - 1):
 					self.dec_convs.append(ConvBlock(cur_block_ic*2, self.oc, 3, 1, 1, use_bn = self.use_norm_btnk, norm_type = norm_type, activation_type = None, use_pixelshuffle = True))
 				else:
-					self.dec_convs.append(ConvBlock(cur_block_ic*2, dim, 3, 1, 1, use_bn = True, norm_type = norm_type, activation_type = None, use_pixelshuffle = True))
+					self.dec_convs.append(ConvBlock(cur_block_ic*2, dim, 3, 1, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = None, use_pixelshuffle = True))
 				cur_block_ic = dim
 		else:
 			for i, dim in enumerate(list(reversed(self.cur_dim))[1:] + [self.oc]):
@@ -227,7 +229,7 @@ class UNet_G(nn.Module):
 				elif(i == len(self.cur_dim) - 1):
 					self.dec_convs.append(DeConvBlock(cur_block_ic*2, self.oc, 4, 2, 1, use_bn = self.use_norm_btnk, norm_type = norm_type, activation_type = None))
 				else:
-					self.dec_convs.append(DeConvBlock(cur_block_ic*2, dim, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = None))
+					self.dec_convs.append(DeConvBlock(cur_block_ic*2, dim, 4, 2, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = None))
 				cur_block_ic = dim
 
 		self.tanh = nn.Tanh()
