@@ -16,21 +16,36 @@ class Dataset():
 	def get_loader(self, sz, bs, num_workers = 1):
 		if(self.basic_types == 'Pix2Pix'):
 			if(self.single_channel):
-				norm = transforms.Normalize([0.5], [0.5])
+				dt = {
+					'input' : transforms.Compose([
+						transforms.Resize((sz, sz)),
+						transforms.Grayscale(1),
+						transforms.ToTensor(),
+						transforms.Normalize([0.5], [0.5])
+					]),
+					'target' : transforms.Compose([
+						transforms.Resize((sz, sz)),
+						transforms.Grayscale(1),
+						transforms.ToTensor(),
+						transforms.Normalize([0.5], [0.5])
+					])
+				}
 			else:
-				norm = transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-			dt = {
-				'input' : transforms.Compose([
-					transforms.Resize((sz, sz)),
-					transforms.ToTensor()
-				]),
-				'target' : transforms.Compose([
-					transforms.Resize((sz, sz)),
-					transforms.ToTensor()
-				])
-			}
-			input_transform = norm(dt['input'])
-			target_transform = norm(dt['target'])
+				dt = {
+					'input' : transforms.Compose([
+						transforms.Resize((sz, sz)),
+						transforms.ToTensor(),
+						transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+					]),
+					'target' : transforms.Compose([
+						transforms.Resize((sz, sz)),
+						transforms.ToTensor(),
+						transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+					])
+				}
+			
+			input_transform = dt['input']
+			target_transform = dt['target']
 
 			train_dataset = Pix2Pix_Dataset(self.train_dir[0], self.train_dir[1], input_transform, target_transform)
 			train_loader = DataLoader(train_dataset, batch_size = bs, shuffle = self.shuffle, num_workers = num_workers)
