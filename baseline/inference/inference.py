@@ -35,7 +35,7 @@ def transform_image(image, sz, ic):
 	return out
 
 def generate(netG, x, z, oc, sz, device):
-	out = netG(x.to(device), z.to(device)).cpu().detach().numpy()
+	out = netG(x.to(device), z).cpu().detach().numpy()
 	out = out.reshape(oc, sz, sz).transpose(1, 2, 0)
 	if(oc > 1):
 		out = cv2.cvtColor(out, cv2.COLOR_RGB2BGR)
