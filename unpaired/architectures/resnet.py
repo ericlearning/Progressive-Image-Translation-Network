@@ -188,12 +188,9 @@ class ResNet_G(nn.Module):
 		self.conv_block1 = ConvBlock(64, 128, 3, 2, pad = 1, use_bn = True, norm_type = norm_type)
 		self.conv_block2 = ConvBlock(128, 256, 3, 2, pad = 1, use_bn = True, norm_type = norm_type)
 
-		self.resblock1 = ResBlock(256, 256, norm_type)
-		self.resblock2 = ResBlock(256, 256, norm_type)
-		self.resblock3 = ResBlock(256, 256, norm_type)
-		self.resblock4 = ResBlock(256, 256, norm_type)
-		self.resblock5 = ResBlock(256, 256, norm_type)
-		self.resblock6 = ResBlock(256, 256, norm_type)
+		self.resblocks = []
+		for _ in range(self.res_num):
+			self.resblocks.append(ResBlock(256, 256, norm_type))
 
 		self.deconv_block1 = DeConvBlock(256, 128, 3, 2, pad = 1, output_pad = 1, use_bn = True, norm_type = norm_type)
 		self.deconv_block2 = DeConvBlock(128, 64, 3, 2, pad = 1, output_pad = 1, use_bn = True, norm_type = norm_type)
@@ -222,12 +219,8 @@ class ResNet_G(nn.Module):
 		# (bs, 128, sz / 2, sz / 2)
 		out = self.conv_block2(out)
 		# (bs, 256, sz / 4, sz / 4)
-		out = self.resblock1(out)
-		out = self.resblock2(out)
-		out = self.resblock3(out)
-		out = self.resblock4(out)
-		out = self.resblock5(out)
-		out = self.resblock6(out)
+		for resblock in self.resblocks:
+			out = resblock(out)
 		# (bs, 256, sz / 4, sz / 4)
 		out = self.deconv_block1(out)
 		# (bs, 128, sz / 2, sz / 2)

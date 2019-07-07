@@ -17,7 +17,7 @@ sz, ic, oc, use_sigmoid = 256, 3, 3, False
 norm_type = 'instancenorm'
 
 train_data = Dataset(train_dir_name, basic_types = 'CycleGan', shuffle = True, single_channel = False)
-val_data = Dataset(val_dir_name, basic_types = 'CycleGan', shuffle = False, single_channel = False)
+val_data = Dataset(val_dir_name, basic_types = 'Pix2Pix', shuffle = False, single_channel = False)
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 netD_A = PatchGan_D_70x70_One_Input(ic, use_sigmoid, norm_type).to(device)
