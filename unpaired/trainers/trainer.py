@@ -32,7 +32,7 @@ class Trainer():
 		self.identity_weight = identity_weight
 		self.ds_weight = ds_weight
 
-		self.nz = self.netG.nz
+		self.nz = self.netG_A2B.nz
 		self.fixed_noise = generate_noise(3, self.nz, self.device)
 
 		self.loss_type = loss_type
@@ -72,7 +72,7 @@ class Trainer():
 			for i, (a, b) in enumerate(tqdm(self.train_dl)):
 				a = a.to(self.device)
 				b = b.to(self.device)
-				bs = x.size(0)
+				bs = a.size(0)
 				noise = generate_noise(bs, self.nz, self.device)
 				fake_a = self.netG_B2A(b, noise)
 				fake_b = self.netG_A2B(a, noise)
@@ -118,7 +118,7 @@ class Trainer():
 					a, b = next(train_dl_iter)
 					a = a.to(self.device)
 					b = b.to(self.device)
-					bs = x.size(0)
+					bs = a.size(0)
 					noise = generate_noise(bs, self.nz, self.device)
 					fake_a = self.netG_B2A(b, noise)
 					fake_b = self.netG_A2B(a, noise)
@@ -174,8 +174,8 @@ class Trainer():
 				self.optimizerG.step()
 
 				if(i % self.loss_interval == 0):
-					print('[%d/%d] [%d/%d] errD : %.4f, errG : %.4f'
-						  %(epoch+1, num_epoch, i+1, self.train_iteration_per_epoch, errD, errG))
+					print('[%d/%d] [%d/%d] errD_A : %.4f, errD_B : %.4f, errG : %.4f'
+						  %(epoch+1, num_epoch, i+1, self.train_iteration_per_epoch, errD_A, errD_B, errG))
 
 				if(i % self.image_interval == 0):
 					if(self.nz == None):
