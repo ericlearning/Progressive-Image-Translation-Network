@@ -95,7 +95,7 @@ def load(filename, netD_A, netD_B, netG_A2B, netG_B2A, optD_A, optD_B, optG):
 	optD_B.load_state_dict(state['optD_B'])
 	optG.load_state_dict(state['optG'])
 
-def get_sample_images_list(mode, inputs):
+def get_sample_images_list(inputs):
 	val_data, netG_A2B, netG_B2A, device = inputs[0], inputs[1], inputs[2], inputs[3]
 	with torch.no_grad():
 		A = val_data[0].to(device)
@@ -143,7 +143,7 @@ def get_sample_images_list(mode, inputs):
 
 	return sample_images_list
 
-def get_sample_images_list_noise(mode, inputs):
+def get_sample_images_list_noise(inputs):
 	val_data, netG_A2B, netG_B2A, noise, device = inputs[0], inputs[1], inputs[2], inputs[3], inputs[4]
 	with torch.no_grad():
 		A = val_data[0].to(device).repeat(3, 1, 1, 1)
