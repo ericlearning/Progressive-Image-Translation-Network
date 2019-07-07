@@ -12,6 +12,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from utils.utils import set_lr, get_lr, generate_noise, save, get_sample_images_list, get_sample_images_list_noise, get_display_samples, resize_input
 from utils.utils import get_gan_loss, get_require_type
 from losses.losses import *
+from itertools import chain
 
 class Trainer():
 	def __init__(self, loss_type, netD_A, netD_B, netG_A2B, netG_B2A, device, train_dl, val_dl, lr_D = 0.0002, lr_G = 0.0002, cycle_weight = 10, identity_weight = 5.0, ds_weight = 8, resample = True, weight_clip = None, use_gradient_penalty = False, loss_interval = 50, image_interval = 50, save_img_dir = 'saved_images/'):
