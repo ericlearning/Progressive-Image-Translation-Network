@@ -124,10 +124,10 @@ class Trainer():
 					fake_a = self.netG_B2A(b, noise)
 					fake_b = self.netG_A2B(a, noise)
 
-				cycle_a = self.netG_B2A(fake_b)
-				cycle_b = self.netG_A2B(fake_a)
-				identity_a = self.netG_B2A(a)
-				identity_b = self.netG_A2B(b)
+				cycle_a = self.netG_B2A(fake_b, noise)
+				cycle_b = self.netG_A2B(fake_a, noise)
+				identity_a = self.netG_B2A(a, noise)
+				identity_b = self.netG_A2B(b, noise)
 
 				if(self.require_type == 0):
 					c_xr_a = None
@@ -184,7 +184,7 @@ class Trainer():
 						plot_image = get_display_samples(sample_images_list, 6, 3)
 					else:
 						sample_images_list = get_sample_images_list_noise((self.val_dl, self.netG_A2B, self.netG_B2A, self.fixed_noise, self.device))
-						plot_image = get_display_samples(sample_images_list, 18, 3)
+						plot_image = get_display_samples(sample_images_list, 9, 6)
 						
 					cur_file_name = os.path.join(self.save_img_dir, str(self.save_cnt)+' : '+str(epoch)+'-'+str(i)+'.jpg')
 					self.save_cnt += 1

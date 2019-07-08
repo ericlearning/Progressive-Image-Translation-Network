@@ -188,9 +188,8 @@ class ResNet_G(nn.Module):
 		self.conv_block1 = ConvBlock(64, 128, 3, 2, pad = 1, use_bn = True, norm_type = norm_type)
 		self.conv_block2 = ConvBlock(128, 256, 3, 2, pad = 1, use_bn = True, norm_type = norm_type)
 
-		self.resblocks = []
-		for _ in range(self.res_num):
-			self.resblocks.append(ResBlock(256, 256, norm_type))
+		list_blocks = [ResBlock(256, 256, norm_type)] * self.res_num
+		self.resblocks = nn.Sequential(*list_blocks)
 
 		self.deconv_block1 = DeConvBlock(256, 128, 3, 2, pad = 1, output_pad = 1, use_bn = True, norm_type = norm_type)
 		self.deconv_block2 = DeConvBlock(128, 64, 3, 2, pad = 1, output_pad = 1, use_bn = True, norm_type = norm_type)
@@ -211,7 +210,7 @@ class ResNet_G(nn.Module):
 			out = torch.cat([x, z.expand(-1, -1, x.shape[2], x.shape[3])], 1)
 
 		# (bs, ic, sz, sz)
-		out = self.reflection_pad1(x)
+		out = self.reflection_pad1(out)
 		# (bs, ic, sz+6, sz+6)
 		out = self.conv(out)
 		# (bs, 64, sz, sz)
@@ -219,8 +218,7 @@ class ResNet_G(nn.Module):
 		# (bs, 128, sz / 2, sz / 2)
 		out = self.conv_block2(out)
 		# (bs, 256, sz / 4, sz / 4)
-		for resblock in self.resblocks:
-			out = resblock(out)
+		out = self.resblocks(out)
 		# (bs, 256, sz / 4, sz / 4)
 		out = self.deconv_block1(out)
 		# (bs, 128, sz / 2, sz / 2)

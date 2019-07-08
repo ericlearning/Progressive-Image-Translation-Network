@@ -184,10 +184,10 @@ def get_sample_images_list_noise(inputs):
 
 		sample_images_list = []
 		sample_images_list.extend(sample_A_images_list)
-		sample_images_list.extend(sample_B_images_list)
 		sample_images_list.extend(sample_A2B_images_list)
-		sample_images_list.extend(sample_B2A_images_list)
 		sample_images_list.extend(sample_A_Reconstruction_images_list)
+		sample_images_list.extend(sample_B_images_list)
+		sample_images_list.extend(sample_B2A_images_list)
 		sample_images_list.extend(sample_B_Reconstruction_images_list)
 
 	return sample_images_list
