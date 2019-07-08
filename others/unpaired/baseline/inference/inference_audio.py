@@ -66,7 +66,7 @@ while(1):
 		for i in range(10):
 			cur_noise = interpolation(sn, en, 10, i+1)
 			out = generate(netG, spec_t, cur_noise, oc, sz, device)
-			cv2.imshow('Input', image)
+			cv2.imshow('Input', spec)
 			cv2.imshow('Output', out)
 			cv2.waitKey(1)
 		noise = copy.deepcopy(en)
