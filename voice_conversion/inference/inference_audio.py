@@ -12,14 +12,23 @@ from utils.inference_utils import *
 from utils.utils import generate_noise
 from PIL import Image
 
-cv2.namedWindow('Input')
+def spec_from_path(path):
+	y = read_audio(path, sample_rate, pre_emphasis_rate)
+	mel = get_mel(get_stft(y, n_fft, win_length, hop_length), sample_rate, n_fft, n_mels, power, shrink_size)
+	spec = cv2.resize(cv2.cvtColor(mel_to_spectrogram(mel, threshold, None), cv2.COLOR_GRAY2RGB), (sz, sz))
+	return spec
+
+cv2.namedWindow('Source')
+cv2.namedWindow('Target')
 cv2.namedWindow('Output')
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 nz = 8
-input_wav_dir = 'samples'
-input_wav_list = os.listdir(input_wav_dir)
+source_wav_dir = 'samples/source'
+source_wav_list = os.listdir(source_wav_dir)
+target_wav_dir = 'samples/target'
+
 model_path = 'saved/.pth'
 
 sample_rate = 22050
@@ -40,15 +49,18 @@ netG.load_state_dict(torch.load(model_path, map_location = 'cpu'))
 netG.eval()
 
 cnt, total_num = 0, 10
-y = read_audio(os.path.join(input_wav_dir, input_wav_list[cnt]), sample_rate, pre_emphasis_rate)
-mel = get_mel(get_stft(y, n_fft, win_length, hop_length), sample_rate, n_fft, n_mels, power, shrink_size)
-spec = cv2.resize(cv2.cvtColor(mel_to_spectrogram(mel, threshold, None), cv2.COLOR_GRAY2RGB), (sz, sz))
-spec_t = transform_image(spec, sz, ic)
+
 noise = generate_noise(1, nz, device)
-out = generate(netG, spec_t, noise, oc, sz, device)
+
+spec_src = spec_from_path(os.path.join(source_wav_dir, source_wav_list[cnt]))
+spec_src_t = transform_image(spec_src, sz, ic)
+spec_tar = spec_from_path(os.path.join(target_wav_dir, source_wav_list[cnt]))
+
+out = generate(netG, spec_src_t, noise, oc, sz, device)
 
 while(1):
-	cv2.imshow('Input', spec)
+	cv2.imshow('Source', spec_src)
+	cv2.imshow('Target', spec_tar)
 	cv2.imshow('Output', out)
 
 	key = cv2.waitKey(1) & 0xFF
@@ -58,15 +70,16 @@ while(1):
 
 	elif(key == ord('r')):
 		noise = generate_noise(1, nz, device)
-		out = generate(netG, spec_t, noise, oc, sz, device)
+		out = generate(netG, spec_src_t, noise, oc, sz, device)
 
 	elif(key == ord('t')):
 		en = generate_noise(1, nz, device)
 		sn = copy.deepcopy(noise)
 		for i in range(10):
 			cur_noise = interpolation(sn, en, 10, i+1)
-			out = generate(netG, spec_t, cur_noise, oc, sz, device)
-			cv2.imshow('Input', spec)
+			out = generate(netG, spec_src_t, cur_noise, oc, sz, device)
+			cv2.imshow('Source', spec_src)
+			cv2.imshow('Target', spec_tar)
 			cv2.imshow('Output', out)
 			cv2.waitKey(1)
 		noise = copy.deepcopy(en)
@@ -75,10 +88,10 @@ while(1):
 		cnt += 1
 		if(cnt>=total_num):
 			cnt = 0
-		y = read_audio(os.path.join(input_wav_dir, input_wav_list[cnt]), sample_rate, pre_emphasis_rate)
-		mel = get_mel(get_stft(y, n_fft, win_length, hop_length), sample_rate, n_fft, n_mels, power, shrink_size)
-		spec = cv2.resize(cv2.cvtColor(mel_to_spectrogram(mel, threshold, None), cv2.COLOR_GRAY2RGB), (sz, sz))
-		spec_t = transform_image(spec, sz, ic)
-		out = generate(netG, spec_t, noise, oc, sz, device)
+
+		spec_src = spec_from_path(os.path.join(source_wav_dir, source_wav_list[cnt]))
+		spec_src_t = transform_image(spec_src, sz, ic)
+		spec_tar = spec_from_path(os.path.join(target_wav_dir, source_wav_list[cnt]))
+		out = generate(netG, spec_src_t, noise, oc, sz, device)
 
 cv2.destroyAllWindows()

@@ -168,7 +168,7 @@ def get_sample_images_list_noise(inputs):
 		sample_B2A_images_list = []
 		sample_B_Reconstruction_images_list = []
 
-		for j in range(3):
+		for j in range(9):
 			cur_img = (sample_A_images[j] + 1) / 2.0
 			sample_A_images_list.append(cur_img.transpose(1, 2, 0))
 			cur_img = (sample_B_images[j] + 1) / 2.0
