@@ -150,3 +150,49 @@ class PatchGan_D_70x70_One_Input(nn.Module):
 			out = self.nothing(out5)
 
 		return out
+
+class PatchGan_D_286x286_One_Input(nn.Module):
+	def __init__(self, ic, use_sigmoid = True, norm_type = 'batchnorm'):
+		super(PatchGan_D_286x286_One_Input, self).__init__()
+		self.ic = ic
+		self.use_sigmoid = use_sigmoid
+		self.conv1 = ConvBlock(self.ic, 64, 4, 2, 1, use_bn = False, activation_type = 'leakyrelu')
+		self.conv2 = ConvBlock(64, 128, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
+		self.conv3 = ConvBlock(128, 256, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
+		self.conv4 = ConvBlock(256, 512, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
+		self.conv5 = ConvBlock(512, 512, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
+		self.conv6 = ConvBlock(512, 512, 4, 1, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
+		self.conv7 = nn.Conv2d(512, 1, 4, 1, 1, bias = False)
+		self.sigmoid = nn.Sigmoid()
+		self.nothing = Nothing()
+
+		for m in self.modules():
+			if(isinstance(m, nn.Conv2d)):
+				m.weight.data.normal_(0.0, 0.02)
+				if(m.bias is not None):
+					m.bias.data.zero_()
+
+	def forward(self, x, return_feature = False):
+		out = x
+		# (bs, ic, 256, 256)
+		out1 = self.conv1(out)
+		# (bs, 64, 128, 128)
+		out2 = self.conv2(out1)
+		# (bs, 128, 64, 64)
+		out3 = self.conv3(out2)
+		# (bs, 256, 32, 32)
+		out4 = self.conv4(out3)
+		# (bs, 256, 16, 16)
+		out5 = self.conv5(out4)
+		# (bs, 256, 8, 8)
+		out6 = self.conv6(out5)
+		# (bs, 512, 7, 7)
+		out7 = self.conv7(out6)
+		# (bs, 1, 6, 6)
+		if(self.use_sigmoid == True):
+			out = self.sigmoid(out7)
+		else:
+			out = self.nothing(out7)
+
+		return out
+		
