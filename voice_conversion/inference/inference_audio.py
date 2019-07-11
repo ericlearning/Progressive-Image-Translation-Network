@@ -1,3 +1,4 @@
+import warnings
 import copy
 import torch
 import torch.nn as nn
@@ -11,6 +12,9 @@ from utils.griffin_lim import *
 from utils.inference_utils import *
 from utils.utils import generate_noise
 from PIL import Image
+
+# disable warnings caused by scipy
+warnings.filterwarnings('ignore')
 
 def spec_from_path(path):
 	y = read_audio(path, sample_rate, pre_emphasis_rate)

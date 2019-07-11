@@ -12,6 +12,7 @@ from utils.griffin_lim import *
 from utils.inference_utils import *
 from utils.utils import generate_noise
 from PIL import Image
+from multiprocessing import Pool
 from tqdm import tqdm
 
 # disable warnings caused by scipy
@@ -108,6 +109,8 @@ netG = UNet_G(ic, oc, sz, nz, use_bn, norm_type).to(device)
 netG.load_state_dict(torch.load(model_path, map_location = 'cpu'))
 netG.eval()
 
-for cnt in tqdm(range(len(source_wav_list))):
-	generate_all(cnt)
+n_workers = 10
+
+with Pool(n_workers) as p:
+	r = list(tqdm(p.imap(generate_all, range(len(source_wav_list))), total = len(source_wav_list)))
 
