@@ -15,6 +15,7 @@ from PIL import Image
 from multiprocessing import Pool
 from tqdm import tqdm
 
+torch.multiprocessing.set_start_method('spawn', force = True)
 # disable warnings caused by scipy
 warnings.filterwarnings('ignore')
 
@@ -111,6 +112,7 @@ netG.eval()
 
 n_workers = 10
 
-with Pool(n_workers) as p:
-	r = list(tqdm(p.imap(generate_all, range(len(source_wav_list))), total = len(source_wav_list)))
+if(__name__ == '__main__'):
+	with Pool(n_workers) as p:
+		r = list(tqdm(p.imap(generate_all, range(len(source_wav_list))), total = len(source_wav_list)))
 
