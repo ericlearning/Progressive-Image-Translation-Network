@@ -143,7 +143,7 @@ def mel_to_stft(mel, sample_rate, n_fft, n_mels, shrink_size, power):
 
 def griffin_lim(input_, griffin_lim_iter, n_fft, win_length, hop_length, pre_emphasis_rate):
 	tmp = copy.deepcopy(input_)
-	for _ in tqdm(range(griffin_lim_iter)):
+	for _ in range(griffin_lim_iter):
 		tmp1 = librosa.core.istft(tmp, win_length = win_length, hop_length = hop_length)
 		tmp2 = librosa.core.stft(tmp1, n_fft = n_fft, win_length = win_length, hop_length = hop_length)
 		tmp3 = tmp2 / (np.maximum(1e-8, np.abs(tmp2)))
