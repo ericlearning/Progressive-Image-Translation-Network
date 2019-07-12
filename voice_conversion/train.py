@@ -5,6 +5,7 @@ from torchvision import transforms
 from dataset import Dataset
 from architectures.unet import UNet_G
 from architectures.resnet import ResNet_G
+from architectures.spade import Spade_G
 from architectures.discriminator import PatchGan_D_70x70_One_Input
 from trainers.trainer import Trainer
 from utils.utils import save, load
@@ -24,6 +25,11 @@ netD_A = PatchGan_D_70x70_One_Input(ic, use_sigmoid, norm_type).to(device)
 netD_B = PatchGan_D_70x70_One_Input(oc, use_sigmoid, norm_type).to(device)
 netG_A2B = ResNet_G(ic, oc, sz, nz = 8, norm_type = norm_type).to(device)
 netG_B2A = ResNet_G(oc, ic, sz, nz = 8, norm_type = norm_type).to(device)
+
+# netG_A2B = UNet_G(ic, oc, sz, nz = 8, norm_type = norm_type).to(device)
+# netG_B2A = UNet_G(oc, ic, sz, nz = 8, norm_type = norm_type).to(device)
+# netG_A2B = SPADE_G(ic, oc, sz, nz = 8).to(device)
+# netG_B2A = SPADE_G(oc, ic, sz, nz = 8).to(device)
 
 trn_dl = train_data.get_loader(256, bs)
 val_dl = list(val_data.get_loader(256, 3))[0]
