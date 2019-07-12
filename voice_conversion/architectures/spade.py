@@ -18,11 +18,18 @@ class Nothing(nn.Module):
 	def forward(self, x):
 		return x
 
+class UpSample(nn.Module):
+	def __init__(self):
+		super(UpSample, self).__init__()
+
+	def forward(self, x):
+		return F.interpolate(x, None, 2, 'nearest', align_corners=True)
+
 class SPADE(nn.Module):
 	def __init__(self, ic_1, ic_2):
+		super(SPADE, self).__init__()
 		self.ic_1 = ic_1	# channel number for x
 		self.ic_2 = ic_2	# channel number for con
-		self.k = k
 		self.bn = nn.BatchNorm2d(self.ic_1, affine = False)
 		self.conv = nn.Conv2d(self.ic_2, 128, 3, 1, 1, bias = True)
 		self.relu = nn.ReLU(inplace = True)
@@ -32,16 +39,17 @@ class SPADE(nn.Module):
 	def forward(self, x, con):	# input shape = output shape
 		normalized = self.bn(x)
 
-		r_con = F.avg_pool2d(con, (x.shape[2], x.shape[3]))
+		r_con = F.adaptive_avg_pool2d(con, (x.shape[2], x.shape[3]))
 		r_con = self.conv(r_con)
 		gamma = self.gamma_conv(r_con)
 		beta = self.beta_conv(r_con)
 
-		out = gamma * mean + beta
+		out = gamma * normalized + beta
 		return out
 
 class SPADE_ResBlk(nn.Module):
 	def __init__(self, ic, oc, channel_c):
+		super(SPADE_ResBlk, self).__init__()
 		self.ic = ic
 		self.oc = oc
 		self.channel_c = channel_c
@@ -58,12 +66,12 @@ class SPADE_ResBlk(nn.Module):
 	def forward(self, x, con):
 		out = self.spade_1(x, con)
 		out = self.relu(out)
-		out = self.conv1(out)
+		out = self.conv_1(out)
 		out = self.spade_2(out, con)
 		out = self.relu(out)
-		out = self.conv2(out)
+		out = self.conv_2(out)
 
-		skip_out = self.spade_skip(x)
+		skip_out = self.spade_skip(x, con)
 		skip_out = self.relu(skip_out)
 		skip_out = self.conv_skip(skip_out)
 
@@ -71,6 +79,7 @@ class SPADE_ResBlk(nn.Module):
 
 class SPADE_G(nn.Module):
 	def __init__(self, ic, oc, sz, nz):
+		super(SPADE_G, self).__init__()
 		self.ic = ic
 		self.oc = oc
 		self.sz = sz
@@ -78,14 +87,14 @@ class SPADE_G(nn.Module):
 
 		self.linear = nn.Linear(nz, 4*4*1024)
 		self.res_nums = {
-			'16' : [1024, 1024]
-			'32' : [1024, 1024, 1024]
-			'64' : [1024, 1024, 1024, 512]
-			'128' : [1024, 1024, 1024, 512, 256]
-			'256' : [1024, 1024, 1024, 512, 256, 128]
+			'16' : [1024, 1024],
+			'32' : [1024, 1024, 1024],
+			'64' : [1024, 1024, 1024, 512],
+			'128' : [1024, 1024, 1024, 512, 256],
+			'256' : [1024, 1024, 1024, 512, 256, 128],
 			'512' : [1024, 1024, 1024, 512, 256, 128, 64]
 		}
-		self.res_num = self.res_num[str(sz)]
+		self.res_num = self.res_nums[str(sz)]
 
 		prev_res = 1024
 		self.blocks = nn.ModuleList([])
@@ -95,13 +104,14 @@ class SPADE_G(nn.Module):
 
 		self.conv = nn.Conv2d(prev_res, oc, 3, 1, 1, bias = True)
 		self.tanh = nn.Tanh()
+		self.upsample = UpSample()
 
 	def forward(self, con, z):
 		out = self.linear(z.view(-1, self.nz))
 		out = out.view(-1, 1024, 4, 4)
 
 		for block in self.blocks:
-			out = block(out)
+			out = self.upsample(block(out, con))
 
 		out = self.conv(out)
 		out = self.tanh(out)
