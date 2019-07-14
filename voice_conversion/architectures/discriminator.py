@@ -19,9 +19,10 @@ class Nothing(nn.Module):
 		return x
 
 class ConvBlock(nn.Module):
-	def __init__(self, ni, no, ks, stride, pad = None, pad_type = 'Zero', use_bn = True, use_pixelshuffle = False, norm_type = 'batchnorm', activation_type = 'leakyrelu'):
+	def __init__(self, ni, no, ks, stride, pad = None, pad_type = 'Zero', use_bn = True, use_sn = False, use_pixelshuffle = False, norm_type = 'batchnorm', activation_type = 'leakyrelu'):
 		super(ConvBlock, self).__init__()
 		self.use_bn = use_bn
+		self.use_sn = use_sn
 		self.use_pixelshuffle = use_pixelshuffle
 		self.norm_type = norm_type
 		self.pad_type = pad_type
@@ -48,9 +49,9 @@ class ConvBlock(nn.Module):
 				self.bn = nn.BatchNorm2d(no)
 			elif(self.norm_type == 'instancenorm'):
 				self.bn = nn.InstanceNorm2d(no)
-			elif(self.norm_type == 'spectralnorm'):
-				self.conv = SpectralNorm(self.conv)
 
+		if(self.use_sn == True):
+			self.conv = SpectralNorm(self.conv)
 
 		if(activation_type == 'relu'):
 			self.act = nn.ReLU(inplace = True)
@@ -70,15 +71,16 @@ class ConvBlock(nn.Module):
 		out = self.conv(out)
 		if(self.use_pixelshuffle == True):
 			out = self.pixelshuffle(out)
-		if(self.use_bn == True and self.norm_type != 'spectralnorm'):
+		if(self.use_bn == True):
 			out = self.bn(out)
 		out = self.act(out)
 		return out
 
 class DeConvBlock(nn.Module):
-	def __init__(self, ni, no, ks, stride, pad = None, output_pad = 0, use_bn = True, norm_type = 'batchnorm', activation_type = 'leakyrelu'):
+	def __init__(self, ni, no, ks, stride, pad = None, output_pad = 0, use_bn = True, use_sn = False, norm_type = 'batchnorm', activation_type = 'leakyrelu'):
 		super(DeConvBlock, self).__init__()
 		self.use_bn = use_bn
+		self.use_sn = use_sn
 		self.norm_type = norm_type
 
 		if(pad is None):
@@ -91,8 +93,9 @@ class DeConvBlock(nn.Module):
 				self.bn = nn.BatchNorm2d(no)
 			elif(self.norm_type == 'instancenorm'):
 				self.bn = nn.InstanceNorm2d(no)
-			elif(self.norm_type == 'spectralnorm'):
-				self.deconv = SpectralNorm(self.deconv)
+
+		if(self.use_sn == True):
+			self.deconv = SpectralNorm(self.deconv)
 
 		if(activation_type == 'relu'):
 			self.act = nn.ReLU(inplace = True)
@@ -107,21 +110,22 @@ class DeConvBlock(nn.Module):
 
 	def forward(self, x):
 		out = self.deconv(x)
-		if(self.use_bn == True and self.norm_type != 'spectralnorm'):
+		if(self.use_bn == True):
 			out = self.bn(out)
 		out = self.act(out)
 		return out
 
 class PatchGan_D_70x70_One_Input(nn.Module):
-	def __init__(self, ic, use_sigmoid = True, norm_type = 'batchnorm'):
+	def __init__(self, ic, use_sigmoid = True, norm_type = 'instancenorm', use_sn = False):
 		super(PatchGan_D_70x70_One_Input, self).__init__()
 		self.ic = ic
+		self.use_sn = use_sn
 		self.use_sigmoid = use_sigmoid
-		self.conv1 = ConvBlock(self.ic, 64, 4, 2, 1, use_bn = False, activation_type = 'leakyrelu')
-		self.conv2 = ConvBlock(64, 128, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv3 = ConvBlock(128, 256, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv4 = ConvBlock(256, 512, 4, 1, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv5 = nn.Conv2d(512, 1, 4, 1, 1, bias = False)
+		self.conv1 = ConvBlock(self.ic, 64, 4, 2, 1, use_bn = False, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv2 = ConvBlock(64, 128, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv3 = ConvBlock(128, 256, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv4 = ConvBlock(256, 512, 4, 1, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv5 = ConvBlock(512, 1, 4, 1, 1, use_bn = False, activation_type = None, use_sn = self.use_sn)
 		self.sigmoid = nn.Sigmoid()
 		self.nothing = Nothing()
 
@@ -152,17 +156,18 @@ class PatchGan_D_70x70_One_Input(nn.Module):
 		return out
 
 class PatchGan_D_286x286_One_Input(nn.Module):
-	def __init__(self, ic, use_sigmoid = True, norm_type = 'batchnorm'):
+	def __init__(self, ic, use_sigmoid = True, norm_type = 'instancenorm', use_sn = False):
 		super(PatchGan_D_286x286_One_Input, self).__init__()
 		self.ic = ic
+		self.use_sn = use_sn
 		self.use_sigmoid = use_sigmoid
-		self.conv1 = ConvBlock(self.ic, 64, 4, 2, 1, use_bn = False, activation_type = 'leakyrelu')
-		self.conv2 = ConvBlock(64, 128, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv3 = ConvBlock(128, 256, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv4 = ConvBlock(256, 512, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv5 = ConvBlock(512, 512, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv6 = ConvBlock(512, 512, 4, 1, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu')
-		self.conv7 = nn.Conv2d(512, 1, 4, 1, 1, bias = False)
+		self.conv1 = ConvBlock(self.ic, 64, 4, 2, 1, use_bn = False, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv2 = ConvBlock(64, 128, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv3 = ConvBlock(128, 256, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv4 = ConvBlock(256, 512, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv5 = ConvBlock(512, 512, 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv6 = ConvBlock(512, 512, 4, 1, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn)
+		self.conv7 = ConvBlock(512, 1, 4, 1, 1, use_bn = False, activation_type = None, use_sn = self.use_sn)
 		self.sigmoid = nn.Sigmoid()
 		self.nothing = Nothing()
 

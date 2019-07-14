@@ -76,9 +76,9 @@ class SPADE_ResBlk(nn.Module):
 
 		return out + skip_out
 
-class SPADE_G(nn.Module):
+class SPADE_G_Progressive(nn.Module):
 	def __init__(self, ic, oc, sz, nz):
-		super(SPADE_G, self).__init__()
+		super(SPADE_G_Progressive, self).__init__()
 		self.ic = ic
 		self.oc = oc
 		self.sz = sz
@@ -86,7 +86,6 @@ class SPADE_G(nn.Module):
 
 		self.linear = nn.Linear(nz, 4*4*1024)
 		self.res_nums = {
-			'16' : [1024, 1024],
 			'32' : [1024, 1024, 1024],
 			'64' : [1024, 1024, 1024, 512],
 			'128' : [1024, 1024, 1024, 512, 256],
@@ -101,24 +100,44 @@ class SPADE_G(nn.Module):
 			self.blocks.append(SPADE_ResBlk(prev_res, res, ic))
 			prev_res = res
 
-		self.conv = SpectralNorm(nn.Conv2d(prev_res, oc, 3, 1, 1, bias = True))
+		self.convs = nn.ModuleList([])
+		for i in range(int(math.log(self.sz // 32, 2))+1):
+			conv = SpectralNorm(nn.Conv2d(self.res_num[i+2], oc, 3, 1, 1, bias = True))
+			self.convs.append(conv)
+
 		self.tanh = nn.Tanh()
 		self.upsample = UpSample()
 
 		if(self.nz == None):
 			self.constant = torch.randn(1, 1024, 4, 4)
 
-	def forward(self, con, z):
+	def forward(self, con, z, stage):
+		stage_int = int(stage)
+		stage_type = (stage == stage_int)
+		p = stage - stage_int
+
 		if(z is None):
 			out = self.constant.expand(con.size(0), -1, -1, -1)
 		else:
 			out = self.linear(z.view(-1, self.nz))
 			out = out.view(-1, 1024, 4, 4)
 
-		for block in self.blocks:
-			out = self.upsample(block(out, con))
+		for i in range(stage_int + 3):
+			out = self.upsample(self.blocks[i](out, con))
 
-		out = self.conv(out)
+		if(stage_type):
+			out = self.convs[stage_int](out)
+
+		else:
+			out1 = self.convs[stage_int](out)
+			out1 = self.upsample(out1)
+
+			out2 = self.blocks[stage_int + 3](out)
+			out2 = self.upsample(out2)
+			out2 = self.convs[stage_int+1](out2)
+
+			out = out1 * (1-p) + out2 * p
+
 		out = self.tanh(out)
 		
 		return out

@@ -203,7 +203,7 @@ class ResNet_G(nn.Module):
 				if(m.bias is not None):
 					m.bias.data.zero_()
 
-	def forward(self, x, z = None):
+	def forward(self, x, z):
 		if(z is None):
 			out = x
 		else:

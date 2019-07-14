@@ -21,8 +21,8 @@ train_data = Dataset(train_dir_name, basic_types = 'CycleGan', shuffle = True, s
 val_data = Dataset(val_dir_name, basic_types = 'Pix2Pix', shuffle = False, single_channel = False)
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-netD_A = PatchGan_D_70x70_One_Input(ic, use_sigmoid, norm_type).to(device)
-netD_B = PatchGan_D_70x70_One_Input(oc, use_sigmoid, norm_type).to(device)
+netD_A = PatchGan_D_70x70_One_Input(ic, use_sigmoid, norm_type, use_sn = False).to(device)
+netD_B = PatchGan_D_70x70_One_Input(oc, use_sigmoid, norm_type, use_sn = False).to(device)
 netG_A2B = ResNet_G(ic, oc, sz, nz = 8, norm_type = norm_type).to(device)
 netG_B2A = ResNet_G(oc, ic, sz, nz = 8, norm_type = norm_type).to(device)
 

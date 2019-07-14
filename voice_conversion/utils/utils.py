@@ -107,14 +107,14 @@ def get_sample_images_list(inputs):
 		sample_B_images = B.detach().cpu().numpy()
 		sample_B_images_list = []
 
-		sample_A2B_images = netG_A2B(A).detach()
-		sample_A_Reconstruction_images = netG_B2A(sample_A2B_images).detach().cpu().numpy()
+		sample_A2B_images = netG_A2B(A, None).detach()
+		sample_A_Reconstruction_images = netG_B2A(sample_A2B_images, None).detach().cpu().numpy()
 		sample_A2B_images = sample_A2B_images.cpu().numpy()
 		sample_A2B_images_list = []
 		sample_A_Reconstruction_images_list = []
 
-		sample_B2A_images = netG_B2A(B).detach()
-		sample_B_Reconstruction_images = netG_A2B(sample_B2A_images).detach().cpu().numpy()
+		sample_B2A_images = netG_B2A(B, None).detach()
+		sample_B_Reconstruction_images = netG_A2B(sample_B2A_images, None).detach().cpu().numpy()
 		sample_B2A_images = sample_B2A_images.cpu().numpy()
 		sample_B2A_images_list = []
 		sample_B_Reconstruction_images_list = []
@@ -164,6 +164,103 @@ def get_sample_images_list_noise(inputs):
 
 		sample_B2A_images = netG_B2A(B, noise).detach()
 		sample_B_Reconstruction_images = netG_A2B(sample_B2A_images, noise).detach().cpu().numpy()
+		sample_B2A_images = sample_B2A_images.cpu().numpy()
+		sample_B2A_images_list = []
+		sample_B_Reconstruction_images_list = []
+
+		for j in range(9):
+			cur_img = (sample_A_images[j] + 1) / 2.0
+			sample_A_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_B_images[j] + 1) / 2.0
+			sample_B_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_A2B_images[j] + 1) / 2.0
+			sample_A2B_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_A_Reconstruction_images[j] + 1) / 2.0
+			sample_A_Reconstruction_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_B2A_images[j] + 1) / 2.0
+			sample_B2A_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_B_Reconstruction_images[j] + 1) / 2.0
+			sample_B_Reconstruction_images_list.append(cur_img.transpose(1, 2, 0))
+
+		sample_images_list = []
+		sample_images_list.extend(sample_A_images_list)
+		sample_images_list.extend(sample_A2B_images_list)
+		sample_images_list.extend(sample_A_Reconstruction_images_list)
+		sample_images_list.extend(sample_B_images_list)
+		sample_images_list.extend(sample_B2A_images_list)
+		sample_images_list.extend(sample_B_Reconstruction_images_list)
+
+	return sample_images_list
+
+def get_sample_images_list_pro(inputs):
+	val_data, netG_A2B, netG_B2A, p, device = inputs[0], inputs[1], inputs[2], inputs[3], inputs[4]
+	with torch.no_grad():
+		A = val_data[0].to(device)
+		B = val_data[1].to(device)
+
+		sample_A_images = A.detach().cpu().numpy()
+		sample_A_images_list = []
+
+		sample_B_images = B.detach().cpu().numpy()
+		sample_B_images_list = []
+
+		sample_A2B_images = netG_A2B(A, None, p).detach()
+		sample_A_Reconstruction_images = netG_B2A(sample_A2B_images, None, p).detach().cpu().numpy()
+		sample_A2B_images = sample_A2B_images.cpu().numpy()
+		sample_A2B_images_list = []
+		sample_A_Reconstruction_images_list = []
+
+		sample_B2A_images = netG_B2A(B, None, p).detach()
+		sample_B_Reconstruction_images = netG_A2B(sample_B2A_images, None, p).detach().cpu().numpy()
+		sample_B2A_images = sample_B2A_images.cpu().numpy()
+		sample_B2A_images_list = []
+		sample_B_Reconstruction_images_list = []
+
+		for j in range(3):
+			cur_img = (sample_A_images[j] + 1) / 2.0
+			sample_A_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_B_images[j] + 1) / 2.0
+			sample_B_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_A2B_images[j] + 1) / 2.0
+			sample_A2B_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_A_Reconstruction_images[j] + 1) / 2.0
+			sample_A_Reconstruction_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_B2A_images[j] + 1) / 2.0
+			sample_B2A_images_list.append(cur_img.transpose(1, 2, 0))
+			cur_img = (sample_B_Reconstruction_images[j] + 1) / 2.0
+			sample_B_Reconstruction_images_list.append(cur_img.transpose(1, 2, 0))
+
+		sample_images_list = []
+		sample_images_list.extend(sample_A_images_list)
+		sample_images_list.extend(sample_B_images_list)
+		sample_images_list.extend(sample_A2B_images_list)
+		sample_images_list.extend(sample_B2A_images_list)
+		sample_images_list.extend(sample_A_Reconstruction_images_list)
+		sample_images_list.extend(sample_B_Reconstruction_images_list)
+
+	return sample_images_list
+
+def get_sample_images_list_noise_pro(inputs):
+	val_data, netG_A2B, netG_B2A, noise, p, device = inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], inputs[5]
+	with torch.no_grad():
+		A = val_data[0].to(device).repeat(3, 1, 1, 1)
+		B = val_data[1].to(device).repeat(3, 1, 1, 1)
+		noise = torch.cat([noise[0].unsqueeze(0)] * 3 + [noise[1].unsqueeze(0)] * 3 + [noise[2].unsqueeze(0)] * 3, 0)
+
+		sample_A_images = A.detach().cpu().numpy()
+		sample_A_images_list = []
+
+		sample_B_images = B.detach().cpu().numpy()
+		sample_B_images_list = []
+
+		sample_A2B_images = netG_A2B(A, noise, p).detach()
+		sample_A_Reconstruction_images = netG_B2A(sample_A2B_images, noise, p).detach().cpu().numpy()
+		sample_A2B_images = sample_A2B_images.cpu().numpy()
+		sample_A2B_images_list = []
+		sample_A_Reconstruction_images_list = []
+
+		sample_B2A_images = netG_B2A(B, noise, p).detach()
+		sample_B_Reconstruction_images = netG_A2B(sample_B2A_images, noise, p).detach().cpu().numpy()
 		sample_B2A_images = sample_B2A_images.cpu().numpy()
 		sample_B2A_images_list = []
 		sample_B_Reconstruction_images_list = []
