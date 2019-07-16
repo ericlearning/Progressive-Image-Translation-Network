@@ -25,20 +25,59 @@ class UpSample(nn.Module):
 	def forward(self, x):
 		return F.interpolate(x, None, 2, 'bilinear', align_corners=True)
 
+def conv3x3(ic, oc, use_sn = True, use_reflection = True, use_eq = False):
+	if(use_reflection):
+		reflection = nn.ReflectionPad2d(1)
+		if(use_eq):
+			conv = EqualizedConv(ic, oc, 3, 1, 0, use_bias = True)
+		else:
+			conv = nn.Conv2d(ic, oc, 3, 1, 0, bias = True)
+	else:
+		reflection = Nothing()
+		if(use_eq):
+			conv = EqualizedConv(ic, oc, 3, 1, 1, use_bias = True)
+		else:
+			conv = nn.Conv2d(ic, oc, 3, 1, 1, bias = True)
+
+	if(use_sn):
+		conv = SpectralNorm(conv)
+
+	out_list = [reflection, conv]
+	return nn.Sequential(*out_list)
+
+class EqualizedConv(nn.Module):
+	def __init__(self, ni, no, ks, stride, pad, use_bias):
+		super(EqualizedConv, self).__init__()
+		self.ni = ni
+		self.no = no
+		self.ks = ks
+		self.stride = stride
+		self.pad = pad
+
+		self.weight = nn.Parameter(nn.init.normal_(
+			torch.empty(self.no, self.ni, self.ks, self.ks)
+		))
+		self.bias = None
+		if(use_bias):
+			self.bias = nn.Parameter(torch.FloatTensor(self.no).fill_(0))
+
+		self.scale = math.sqrt(2 / (self.ni * self.ks * self.ks))
+
+	def forward(self, x):
+		out = F.conv2d(input = x, weight = self.weight * self.scale, bias = self.bias,
+					   stride = self.stride, padding = self.pad)
+		return out
+
 class SPADE(nn.Module):
-	def __init__(self, ic_1, ic_2, use_sn = True):
+	def __init__(self, ic_1, ic_2, use_sn = True, use_reflection = True, use_eq = False):
 		super(SPADE, self).__init__()
 		self.ic_1 = ic_1	# channel number for x
 		self.ic_2 = ic_2	# channel number for con
 		self.bn = nn.BatchNorm2d(self.ic_1, affine = False)
-		if(use_sn):
-			self.conv = SpectralNorm(nn.Conv2d(self.ic_2, 128, 3, 1, 1, bias = True))
-			self.gamma_conv = SpectralNorm(nn.Conv2d(128, self.ic_1, 3, 1, 1, bias = True))
-			self.beta_conv = SpectralNorm(nn.Conv2d(128, self.ic_1, 3, 1, 1, bias = True))
-		else:
-			self.conv = nn.Conv2d(self.ic_2, 128, 3, 1, 1, bias = True)
-			self.gamma_conv = nn.Conv2d(128, self.ic_1, 3, 1, 1, bias = True)
-			self.beta_conv = nn.Conv2d(128, self.ic_1, 3, 1, 1, bias = True)
+
+		self.conv = conv3x3(self.ic_2, 128, use_sn, use_reflection, use_eq)
+		self.gamma_conv = conv3x3(128, self.ic_1, use_sn, use_reflection, use_eq)
+		self.beta_conv = conv3x3(128, self.ic_1, use_sn, use_reflection, use_eq)
 
 	def forward(self, x, con):	# input shape = output shape
 		normalized = self.bn(x)
@@ -52,24 +91,20 @@ class SPADE(nn.Module):
 		return out
 
 class SPADE_ResBlk(nn.Module):
-	def __init__(self, ic, oc, channel_c, use_sn = True):
+	def __init__(self, ic, oc, channel_c, use_sn = True, use_reflection = True, use_eq = False):
 		super(SPADE_ResBlk, self).__init__()
 		self.ic = ic
 		self.oc = oc
 		self.channel_c = channel_c
 
-		self.spade_1 = SPADE(ic, channel_c, use_sn)
-		self.spade_2 = SPADE(oc, channel_c, use_sn)
-		self.spade_skip = SPADE(ic, channel_c, use_sn)
+		self.spade_1 = SPADE(ic, channel_c, use_sn, use_reflection, use_eq)
+		self.spade_2 = SPADE(oc, channel_c, use_sn, use_reflection, use_eq)
+		self.spade_skip = SPADE(ic, channel_c, use_sn, use_reflection, use_eq)
 
-		if(use_sn):
-			self.conv_1 = SpectralNorm(nn.Conv2d(ic, oc, 3, 1, 1, bias = True))
-			self.conv_2 = SpectralNorm(nn.Conv2d(oc, oc, 3, 1, 1, bias = True))
-			self.conv_skip = SpectralNorm(nn.Conv2d(ic, oc, 3, 1, 1, bias = True))
-		else:
-			self.conv_1 = nn.Conv2d(ic, oc, 3, 1, 1, bias = True)
-			self.conv_2 = nn.Conv2d(oc, oc, 3, 1, 1, bias = True)
-			self.conv_skip = nn.Conv2d(ic, oc, 3, 1, 1, bias = True)
+		self.conv_1 = conv3x3(ic, oc, use_sn, use_reflection, use_eq)
+		self.conv_2 = conv3x3(oc, oc, use_sn, use_reflection, use_eq)
+		self.conv_skip = conv3x3(ic, oc, use_sn, use_reflection, use_eq)
+
 		self.relu = nn.ReLU(inplace = True)
 
 	def forward(self, x, con):
@@ -87,7 +122,7 @@ class SPADE_ResBlk(nn.Module):
 		return out + skip_out
 
 class SPADE_G_Progressive(nn.Module):
-	def __init__(self, ic, oc, sz, nz, use_sn = True):
+	def __init__(self, ic, oc, sz, nz, use_sn = True, use_reflection = True, use_eq = False):
 		super(SPADE_G_Progressive, self).__init__()
 		self.ic = ic
 		self.oc = oc
@@ -106,15 +141,12 @@ class SPADE_G_Progressive(nn.Module):
 		prev_res = 1024
 		self.blocks = nn.ModuleList([])
 		for res in self.res_num:
-			self.blocks.append(SPADE_ResBlk(prev_res, res, ic, use_sn))
+			self.blocks.append(SPADE_ResBlk(prev_res, res, ic, use_sn, use_reflection, use_eq))
 			prev_res = res
 
 		self.convs = nn.ModuleList([])
 		for i in range(int(math.log(self.sz // 32, 2))+1):
-			if(use_sn):
-				conv = SpectralNorm(nn.Conv2d(self.res_num[i+2], oc, 3, 1, 1, bias = True))
-			else:
-				conv = nn.Conv2d(self.res_num[i+2], oc, 3, 1, 1, bias = True)
+			conv = conv3x3(self.res_num[i+2], oc, use_sn, use_reflection, use_eq)
 			self.convs.append(conv)
 
 		self.tanh = nn.Tanh()
