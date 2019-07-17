@@ -138,11 +138,12 @@ class PixelNorm(nn.Module):
 		return out
 
 class PGGAN_G(nn.Module):
-	def __init__(self, sz, nz, nc, use_pixelnorm = False, use_equalized_lr = False, use_tanh = True):
+	def __init__(self, ic, oc, sz, nz, use_pixelnorm = False, use_equalized_lr = False, use_tanh = True):
 		super(PGGAN_G, self).__init__()
+		self.ic = ic
+		self.oc = oc
 		self.sz = sz
 		self.nz = nz
-		self.nc = nc
 		self.ngfs = {
 			'8': [512, 512],
 			'16': [512, 512, 512],
@@ -157,23 +158,23 @@ class PGGAN_G(nn.Module):
 		self.cur_ngf = self.ngfs[str(sz)]
 		self.leakyrelu = nn.LeakyReLU(0.2, inplace = True)
 
+		if(self.nz == None):
+			default_nz_size = 8
+			nz = default_nz_size
+			self.constant = torch.nn.Parameter(torch.ones((1, nz, 1, 1)))
+			self.constant.requires_grad = True
+		else:
+			self.constant = None
+
 		# create blocks list
 		prev_dim = self.cur_ngf[0]
-		cur_block = nn.Sequential(
-			ScaledConvBlock(nz, prev_dim, 4, 1, 3, 'relu', True, use_equalized_lr, use_pixelnorm),
-		)
-		cur_spade_block = nn.Sequential(
-			SPADE(prev_dim, prev_dim)
-		)
+		cur_block = ScaledConvBlock(nz, prev_dim, 4, 1, 3, 'relu', True, use_equalized_lr, use_pixelnorm)
+		cur_spade_block = SPADE(prev_dim, self.ic)
 		self.blocks = nn.ModuleList([cur_block])
 		self.spade_blocks = nn.ModuleList([cur_spade_block])
 		for dim in self.cur_ngf[1:]:
-			cur_block = nn.Sequential(
-				ScaledConvBlock(prev_dim, dim, 3, 1, 1, 'relu', True, use_equalized_lr, use_pixelnorm),
-			)
-			cur_spade_block = nn.Sequential(
-				SPADE(dim, dim)
-			)
+			cur_block = ScaledConvBlock(prev_dim, dim, 3, 1, 1, 'relu', True, use_equalized_lr, use_pixelnorm)
+			cur_spade_block = SPADE(dim, self.ic)
 			prev_dim = dim
 			self.blocks.append(cur_block)
 			self.spade_blocks.append(cur_spade_block)
@@ -181,13 +182,7 @@ class PGGAN_G(nn.Module):
 		# create to_blocks list
 		self.to_blocks = nn.ModuleList([])
 		for dim in self.cur_ngf:
-			self.to_blocks.append(ScaledConvBlock(dim, nc, 1, 1, 0, None, True, use_equalized_lr, use_pixelnorm, only_conv = True))
-
-		if(self.nz == None):
-			self.constant = torch.nn.Parameter(torch.ones((1, self.nz, 1, 1)))
-			self.constant.requires_grad = True
-		else:
-			self.constant = None
+			self.to_blocks.append(ScaledConvBlock(dim, oc, 1, 1, 0, None, True, use_equalized_lr, use_pixelnorm, only_conv = True))
 
 		self.use_tanh = use_tanh
 		self.tanh = nn.Tanh()
