@@ -3,10 +3,10 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 from dataset import Dataset
-from architectures.unet import UNet_G
-from architectures.resnet import ResNet_G
-from architectures.spade import SPADE_G
-from architectures.discriminator import PatchGan_D_70x70_One_Input
+from architectures.baseline.unet import UNet_G
+from architectures.baseline.resnet import ResNet_G
+from architectures.baseline.spade import SPADE_G
+from architectures.baseline.discriminator import PatchGan_D_70x70_One_Input
 from trainers.trainer import Trainer
 from utils.utils import save, load
 

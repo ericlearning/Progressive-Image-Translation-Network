@@ -121,7 +121,7 @@ class SPADE_ResBlk(nn.Module):
 
 		return out + skip_out
 
-class SPADE_G_Progressive(nn.Module):
+class SPADE_G_Fade(nn.Module):
 	def __init__(self, ic, oc, sz, nz, use_sn = True, use_reflection = True, use_eq = False):
 		super(SPADE_G_Progressive, self).__init__()
 		self.ic = ic
