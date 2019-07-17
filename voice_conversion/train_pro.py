@@ -26,5 +26,5 @@ netG_B2A = SPADE_G_Progressive(oc, ic, sz, nz = 8).to(device)
 
 trainer = Trainer('SGAN', netD_A, netD_B, netG_A2B, netG_B2A, device, train_data, val_data, lr_D = lr_D, lr_G = lr_G, cycle_weight = 10, identity_weight = 5.0, ds_weight = 8, resample = True, weight_clip = None, use_gradient_penalty = False, loss_interval = 150, image_interval = 300, save_img_dir = 'saved_imges')
 
-trainer.train([50, 50, 50, 50], [0.5, 0.5, 0.5], [2, 2, 2, 2])
+trainer.train([50, 50, 50, 50], [0.5, 0.5, 0.5], [16, 8, 4, 2])
 save('saved/cur_state.state', netD_A, netD_B, netG_A2B, netG_B2A, trainer.optimizerD_A, trainer.optimizerD_B, trainer.optimizerG)
