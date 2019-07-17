@@ -135,7 +135,7 @@ class PatchGan_D_70x70_One_Input(nn.Module):
 				if(m.bias is not None):
 					m.bias.data.zero_()
 
-	def forward(self, x, return_feature = False):
+	def forward(self, x):
 		out = x
 		# (bs, ic, 256, 256)
 		out1 = self.conv1(out)
@@ -177,7 +177,7 @@ class PatchGan_D_286x286_One_Input(nn.Module):
 				if(m.bias is not None):
 					m.bias.data.zero_()
 
-	def forward(self, x, return_feature = False):
+	def forward(self, x):
 		out = x
 		# (bs, ic, 256, 256)
 		out1 = self.conv1(out)
