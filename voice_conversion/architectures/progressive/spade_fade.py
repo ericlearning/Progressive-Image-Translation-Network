@@ -130,15 +130,16 @@ class SPADE_G_Fade(nn.Module):
 		self.nz = nz
 
 		self.res_nums = {
-			'32' : [1024, 1024, 1024],
-			'64' : [1024, 1024, 1024, 512],
-			'128' : [1024, 1024, 1024, 512, 256],
-			'256' : [1024, 1024, 1024, 512, 256, 128],
-			'512' : [1024, 1024, 1024, 512, 256, 128, 64]
+			'16' : [512, 512],
+			'32' : [512, 512, 512],
+			'64' : [512, 512, 512, 256],
+			'128' : [512, 512, 512, 256, 128],
+			'256' : [512, 512, 512, 256, 128, 64],
+			'512' : [512, 512, 512, 256, 128, 64, 32]
 		}
 		self.res_num = self.res_nums[str(sz)]
 
-		prev_res = 1024
+		prev_res = 512
 		self.blocks = nn.ModuleList([])
 		for res in self.res_num:
 			self.blocks.append(SPADE_ResBlk(prev_res, res, ic, use_sn, use_reflection, use_eq))
@@ -153,10 +154,10 @@ class SPADE_G_Fade(nn.Module):
 		self.upsample = UpSample()
 
 		if(self.nz == None):
-			self.constant = torch.nn.Parameter(torch.ones((1, 1024, 4, 4)))
+			self.constant = torch.nn.Parameter(torch.ones((1, 512, 4, 4)))
 			self.constant.requires_grad = True
 		else:
-			self.linear = nn.Linear(nz, 4*4*1024)
+			self.linear = nn.Linear(nz, 4*4*512)
 
 		for m in self.modules():
 			if(isinstance(m, nn.Conv2d)):
@@ -171,7 +172,7 @@ class SPADE_G_Fade(nn.Module):
 			out = self.constant.expand(con.size(0), -1, -1, -1)
 		else:
 			out = self.linear(z.view(-1, self.nz))
-			out = out.view(-1, 1024, 4, 4)
+			out = out.view(-1, 512, 4, 4)
 
 		for i in range(stage_int + 3):
 			out = self.upsample(self.blocks[i](out, con))
