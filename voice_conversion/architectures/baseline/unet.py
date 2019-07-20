@@ -19,9 +19,10 @@ class Nothing(nn.Module):
 		return x
 
 class ConvBlock(nn.Module):
-	def __init__(self, ni, no, ks, stride, pad = None, pad_type = 'Zero', use_bn = True, use_pixelshuffle = False, norm_type = 'batchnorm', activation_type = 'leakyrelu'):
+	def __init__(self, ni, no, ks, stride, pad = None, pad_type = 'Zero', use_bn = True, use_sn = False, use_pixelshuffle = False, norm_type = 'batchnorm', activation_type = 'leakyrelu'):
 		super(ConvBlock, self).__init__()
 		self.use_bn = use_bn
+		self.use_sn = use_sn
 		self.use_pixelshuffle = use_pixelshuffle
 		self.norm_type = norm_type
 		self.pad_type = pad_type
@@ -48,9 +49,9 @@ class ConvBlock(nn.Module):
 				self.bn = nn.BatchNorm2d(no)
 			elif(self.norm_type == 'instancenorm'):
 				self.bn = nn.InstanceNorm2d(no)
-			elif(self.norm_type == 'spectralnorm'):
-				self.conv = SpectralNorm(self.conv)
 
+		if(self.use_sn == True):
+			self.conv = SpectralNorm(self.conv)
 
 		if(activation_type == 'relu'):
 			self.act = nn.ReLU(inplace = True)
@@ -70,15 +71,16 @@ class ConvBlock(nn.Module):
 		out = self.conv(out)
 		if(self.use_pixelshuffle == True):
 			out = self.pixelshuffle(out)
-		if(self.use_bn == True and self.norm_type != 'spectralnorm'):
+		if(self.use_bn == True):
 			out = self.bn(out)
 		out = self.act(out)
 		return out
 
 class DeConvBlock(nn.Module):
-	def __init__(self, ni, no, ks, stride, pad = None, output_pad = 0, use_bn = True, norm_type = 'batchnorm', activation_type = 'leakyrelu'):
+	def __init__(self, ni, no, ks, stride, pad = None, output_pad = 0, use_bn = True, use_sn = False, norm_type = 'batchnorm', activation_type = 'leakyrelu'):
 		super(DeConvBlock, self).__init__()
 		self.use_bn = use_bn
+		self.use_sn = use_sn
 		self.norm_type = norm_type
 
 		if(pad is None):
@@ -91,8 +93,9 @@ class DeConvBlock(nn.Module):
 				self.bn = nn.BatchNorm2d(no)
 			elif(self.norm_type == 'instancenorm'):
 				self.bn = nn.InstanceNorm2d(no)
-			elif(self.norm_type == 'spectralnorm'):
-				self.deconv = SpectralNorm(self.deconv)
+
+		if(self.use_sn == True):
+			self.deconv = SpectralNorm(self.deconv)
 
 		if(activation_type == 'relu'):
 			self.act = nn.ReLU(inplace = True)
@@ -107,7 +110,7 @@ class DeConvBlock(nn.Module):
 
 	def forward(self, x):
 		out = self.deconv(x)
-		if(self.use_bn == True and self.norm_type != 'spectralnorm'):
+		if(self.use_bn == True):
 			out = self.bn(out)
 		out = self.act(out)
 		return out
@@ -119,13 +122,14 @@ def inverse_receptive_calculator(output_size, ks, stride, pad):
 	return ((output_size - 1) * stride) + ks
 
 class UNet_G(nn.Module):
-	def __init__(self, ic, oc, sz, nz = None, use_bn = True, norm_type = 'instancenorm', use_norm_bottleneck = False, use_pixelshuffle = False):
+	def __init__(self, ic, oc, sz, nz = None, use_bn = True, use_sn = False, norm_type = 'instancenorm', use_norm_bottleneck = False, use_pixelshuffle = False):
 		super(UNet_G, self).__init__()
 		self.ic = ic
 		self.oc = oc
 		self.sz = sz
 		self.nz = nz
 		self.use_bn = use_bn
+		self.use_sn = use_sn
 		self.use_norm_btnk = use_norm_bottleneck
 		self.use_pixelshuffle = use_pixelshuffle
 		self.dims = {
@@ -150,11 +154,11 @@ class UNet_G(nn.Module):
 
 		for i, dim in enumerate(self.cur_dim):
 			if(i == 0):
-				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = False, activation_type = None))
+				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = False, use_sn = self.use_sn, activation_type = None))
 			elif(i == len(self.cur_dim) - 1):
-				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = self.use_norm_btnk, norm_type = norm_type, activation_type = None))
+				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = self.use_norm_btnk, use_sn = self.use_sn, norm_type = norm_type, activation_type = None))
 			else:
-				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = None))
+				self.enc_convs.append(ConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = self.use_bn, use_sn = self.use_sn, norm_type = norm_type, activation_type = None))
 			cur_block_ic = dim
 
 		self.dec_convs = nn.ModuleList([])
@@ -162,20 +166,20 @@ class UNet_G(nn.Module):
 		if(self.use_pixelshuffle):
 			for i, dim in enumerate(list(reversed(self.cur_dim))[1:] + [self.oc]):
 				if(i == 0):
-					self.dec_convs.append(ConvBlock(cur_block_ic, dim, 3, 1, 1, use_bn = False, activation_type = None, use_pixelshuffle = True))
+					self.dec_convs.append(ConvBlock(cur_block_ic, dim, 3, 1, 1, use_bn = False, use_sn = self.use_sn, activation_type = None, use_pixelshuffle = True))
 				elif(i == len(self.cur_dim) - 1):
-					self.dec_convs.append(ConvBlock(cur_block_ic*2, self.oc, 3, 1, 1, use_bn = self.use_norm_btnk, norm_type = norm_type, activation_type = None, use_pixelshuffle = True))
+					self.dec_convs.append(ConvBlock(cur_block_ic*2, self.oc, 3, 1, 1, use_bn = self.use_norm_btnk, use_sn = self.use_sn, norm_type = norm_type, activation_type = None, use_pixelshuffle = True))
 				else:
-					self.dec_convs.append(ConvBlock(cur_block_ic*2, dim, 3, 1, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = None, use_pixelshuffle = True))
+					self.dec_convs.append(ConvBlock(cur_block_ic*2, dim, 3, 1, 1, use_bn = self.use_bn, use_sn = self.use_sn, norm_type = norm_type, activation_type = None, use_pixelshuffle = True))
 				cur_block_ic = dim
 		else:
 			for i, dim in enumerate(list(reversed(self.cur_dim))[1:] + [self.oc]):
 				if(i == 0):
-					self.dec_convs.append(DeConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = False, activation_type = None))
+					self.dec_convs.append(DeConvBlock(cur_block_ic, dim, 4, 2, 1, use_bn = False, use_sn = self.use_sn, activation_type = None))
 				elif(i == len(self.cur_dim) - 1):
-					self.dec_convs.append(DeConvBlock(cur_block_ic*2, self.oc, 4, 2, 1, use_bn = self.use_norm_btnk, norm_type = norm_type, activation_type = None))
+					self.dec_convs.append(DeConvBlock(cur_block_ic*2, self.oc, 4, 2, 1, use_bn = self.use_norm_btnk, use_sn = self.use_sn, norm_type = norm_type, activation_type = None))
 				else:
-					self.dec_convs.append(DeConvBlock(cur_block_ic*2, dim, 4, 2, 1, use_bn = self.use_bn, norm_type = norm_type, activation_type = None))
+					self.dec_convs.append(DeConvBlock(cur_block_ic*2, dim, 4, 2, 1, use_bn = self.use_bn, use_sn = self.use_sn, norm_type = norm_type, activation_type = None))
 				cur_block_ic = dim
 
 		self.tanh = nn.Tanh()

@@ -28,8 +28,8 @@ def generate_all(cnt):
 	path1 = os.path.join(source_wav_dir, source_wav_list[cnt])
 	path2 = os.path.join(source_spec_save_dir, source_wav_list[cnt][:-4]+'.png')
 	_ = spec_from_path_to_path(path1, path2)
-	spec_src, ratio = get_image(path2, sz)
-	spec_src = transform_image(spec_src, sz, ic)
+	spec_src, ratio = get_image(path2, sz, resize_input)
+	spec_src = transform_image(spec_src, sz, ic, resize_input)
 
 	# source : loads spec, saves as audio
 	path3 = os.path.join(source_wav_save_dir, source_wav_list[cnt])
@@ -91,6 +91,8 @@ out_wav_save_dir = 'generated/wav/output'
 
 model_path = 'saved/.pth'
 
+resize_input = True
+
 sample_rate = 22050
 pre_emphasis_rate = 0.97
 n_fft = 2048
@@ -98,7 +100,7 @@ win_length = 1000
 hop_length = 250
 n_mels = 256
 power = 1
-shrink_size = 3.5
+shrink_size = 1
 threshold = 5
 griffin_lim_iter = 100
 
