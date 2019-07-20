@@ -38,9 +38,10 @@ def interpolation(start, end, step_num, cur_step):
 	return start * ((step_num - cur_step) / step_num) + end * (cur_step / step_num)
 
 def generate(netG, x, z, oc, device):
-	out = netG(x.to(device), z).cpu().detach().numpy()
-	out = out.reshape(oc, out.shape[2], out.shape[3]).transpose(1, 2, 0)
-	if(oc > 1):
-		out = cv2.cvtColor(out, cv2.COLOR_RGB2BGR)
-	out = ((out + 1) / 2.0 * 255.0).astype('uint8')
+	with torch.zero_grad():
+		out = netG(x.to(device), z).cpu().detach().numpy()
+		out = out.reshape(oc, out.shape[2], out.shape[3]).transpose(1, 2, 0)
+		if(oc > 1):
+			out = cv2.cvtColor(out, cv2.COLOR_RGB2BGR)
+		out = ((out + 1) / 2.0 * 255.0).astype('uint8')
 	return out

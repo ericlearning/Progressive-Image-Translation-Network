@@ -3,6 +3,7 @@ import torch
 import random
 import librosa
 import numpy as np
+import torchaudio
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from PIL import Image
@@ -35,24 +36,34 @@ class Audio_Dataset():
 		return len(self.audio_name_list)
 
 	def __getitem__(self, idx):
-		input_wav = librosa.core.load(os.path.join(self.input_dir, self.audio_name_list[idx]), sr = 22050, mono = True)
-		target_wav = librosa.core.load(os.path.join(self.target_dir, self.audio_name_list[idx]), sr = 22050, mono = True)
+		input_wav, sr1 = torchaudio.load(os.path.join(self.input_dir, self.audio_name_list[idx]))
+		target_wav, sr2 = torchaudio.load(os.path.join(self.target_dir, self.audio_name_list[idx]))
 
-		# size : (n, )
-		wave_shape = input_wav.shape[0]
+		# size : (1, n)
+		wave_shape_1 = input_wav.shape[1]
+		wave_shape_2 = target_wav.shape[1]
+
+		if(sr1 != sr2):
+			print('Warning: SampleRate does not match')
+			print(sr1, sr2)
+
+		if(wave_shape_1 != wave_shape_2):
+			print('Warning: Wave Shape does not match')
+			print(wave_shape_1, wave_shape_2)
+
 		t1 = random.randint(0, wave_shape+1-16384)
 		t2 = t1+16384
 		if(t2>wave_shape):
 			t2 = wave_shape
 
-		input_wav = input_wav[t1:t2]
-		target_wav = target_wav[t1:t2]
+		input_wav = input_wav[:, t1:t2]
+		target_wav = target_wav[:, t1:t2]
 
 		if(t2 == wave_shape):
-			input_wav = librosa.util.fix_length(input_wav, 16384)
-			target_wav = librosa.util.fix_length(target_wav, 16384)
-
-
+			#input_wav = librosa.util.fix_length(input_wav, 16384)
+			#target_wav = librosa.util.fix_length(target_wav, 16384)
+			input_wav = torchaudio.functional.pad_trim(input_wav, 0, 16384, 1, 0)
+			target_wav = torchaudio.functional.pad_trim(target_wav, 0, 16384, 1, 0)
 
 		sample = (input_wav, target_wav)
 		return sample
