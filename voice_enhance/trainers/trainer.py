@@ -9,8 +9,7 @@ import torch.autograd as autograd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
-from utils.utils import set_lr, get_lr, generate_noise, save, get_sample_images_list, get_sample_images_list_noise, get_display_samples, resize_input
-from utils.utils import get_gan_loss, get_require_type
+from utils.utils import *
 from losses.losses import *
 
 class Trainer():
@@ -92,13 +91,13 @@ class Trainer():
 
 				if(self.require_type == 0):
 					c_xr = None
-					c_xf, f1 = self.netD(x, fake_y, True)		# (bs, 1, 1, 1)
+					c_xf = self.netD(x, fake_y)		# (bs, 1, 1, 1)
 					c_xf = c_xf.view(-1)						# (bs)	
 					errG_1 = self.loss.g_loss(c_xf)
 				if(self.require_type == 1 or self.require_type == 2):
-					c_xr, f2 = self.netD(x, y, True)				# (bs, 1, 1, 1)
+					c_xr = self.netD(x, y)				# (bs, 1, 1, 1)
 					c_xr = c_xr.view(-1)						# (bs)
-					c_xf, f1 = self.netD(x, fake_y, True)		# (bs, 1, 1, 1)
+					c_xf = self.netD(x, fake_y)		# (bs, 1, 1, 1)
 					c_xf = c_xf.view(-1)						# (bs)		
 					errG_1 = self.loss.g_loss(c_xr, c_xf)
 				

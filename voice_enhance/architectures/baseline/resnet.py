@@ -118,66 +118,113 @@ def receptive_calculator(input_size, ks, stride, pad):
 def inverse_receptive_calculator(output_size, ks, stride, pad):
 	return ((output_size - 1) * stride) + ks
 
-class UNet_G(nn.Module):
-	def __init__(self, ic = 1, oc = 1, use_bn = True, use_sn = False, norm_type = 'instancenorm'):
-		super(UNet_G, self).__init__()
+# Residual Block
+class ResBlock(nn.Module):
+	def __init__(self, ic = 1, oc = 1, norm_type = 'instancenorm', use_sn = False):
+		super(ResBlock, self).__init__()
 		self.ic = ic
 		self.oc = oc
-		self.use_bn = use_bn
+		self.norm_type = norm_type
 		self.use_sn = use_sn
 
-		self.leaky_relu = nn.LeakyReLU(0.2, inplace = True)
+		self.relu = nn.ReLU(inplace = True)
+		self.reflection_pad1 = nn.ReflectionPad2d(15)
+		self.reflection_pad2 = nn.ReflectionPad2d(15)
+
+		self.conv1 = nn.Conv1d(ic, oc, 32, 2, 0, bias = False)
+		self.conv2 = nn.Conv1d(oc, oc, 32, 2, 0, bias = False)
+
+		if(self.use_sn == True):
+			self.conv1 = SpectralNorm(self.conv1)
+			self.conv2 = SpectralNorm(self.conv2)
+		else:
+			if(self.norm_type == 'batchnorm'):
+				self.bn1 = nn.BatchNorm1d(oc)
+				self.bn2 = nn.BatchNorm1d(oc)
+
+			elif(self.norm_type == 'instancenorm'):
+				self.bn1 = nn.InstanceNorm1d(oc)
+				self.bn2 = nn.InstanceNorm1d(oc)
+
+	def forward(self, x):
+		out = self.reflection_pad1(x)
+		out = self.relu(self.bn1(self.conv1(out)))
+		out = self.reflection_pad2(out)
+		out = self.bn2(self.conv2(out))
+		out = out + x
+		return out
+
+# ResNet Generator
+class ResNet_G(nn.Module):
+	def __init__(self, ic, oc, sz, nz = None, norm_type = 'instancenorm', use_sn = False):
+		super(ResNet_G, self).__init__()
+		self.ic = ic
+		self.oc = oc
+		self.sz = sz
+		self.res_nums = {
+			'16' : 2,
+			'32' : 3,
+			'64' : 4,
+			'128' : 5,
+			'256' : 6,
+			'512' : 7
+		}
+		self.res_num = self.res_nums[str(sz)]
+		self.nz = nz
+
 		self.relu = nn.ReLU(inplace = True)
 
-		self.cur_dim = [16, 32, 32, 64, 64, 128, 128, 256, 256, 512, 1024]
+		self.reflection_pad1 = nn.ReflectionPad1d(15)
+		self.reflection_pad2 = nn.ReflectionPad1d(15)
 
-		self.enc_convs = nn.ModuleList([])
-		cur_block_ic = 1
-		for i, dim in enumerate(self.cur_dim):
-			if(i == 0):
-				block = ConvBlock(self.ic, self.cur_dim[0], 32, 2, 15, pad_type = 'Reflection', use_bn = False, use_sn = self.use_sn, activation_type = None)
-			elif(i == len(self.cur_dim) - 1):
-				block = ConvBlock(self.cur_dim[i-1], self.cur_dim[i], 32, 2, 15, pad_type = 'Reflection', use_bn = False, use_sn = self.use_sn, activation_type = None)
-			else:
-				block = ConvBlock(self.cur_dim[i-1], self.cur_dim[i], 32, 2, 15, pad_type = 'Reflection', use_bn = True, norm_type = norm_type, use_sn = self.use_sn, activation_type = None)
-			self.enc_convs.append(block)
+		if(self.nz == None):
+			block_ic = self.ic
+		else:
+			block_ic = self.ic + self.nz
 
-		self.dec_convs = nn.ModuleList([])
-		cur_block_ic = self.cur_dim[-1]
-		for i, dim in enumerate(list(reversed(self.cur_dim))[1:] + [self.oc]):
-			if(i == 0):
-				de_block = DeConvBlock(cur_block_ic, dim, 32, 2, 15, pad_type = 'Reflection', use_bn = False, use_sn = self.use_sn, activation_type = None)
-			elif(i == len(self.cur_dim) - 1):
-				de_block = DeConvBlock(cur_block_ic*2, self.oc, 32, 2, 15, pad_type = 'Reflection', use_bn = False, use_sn = self.use_sn, activation_type = None)
-			else:
-				de_block = DeConvBlock(cur_block_ic*2, dim, 32, 2, 15, pad_type = 'Reflection', use_bn = self.use_bn, use_sn = self.use_sn, norm_type = norm_type, activation_type = None)
-			cur_block_ic = dim
-			self.dec_convs.append(de_block)
+		self.conv = nn.Conv1d(block_ic, 64, 31, 1, 0)
+		self.conv_block1 = ConvBlock(64, 128, 32, 2, pad = 15, use_bn = True, norm_type = norm_type, use_sn = use_sn)
+		self.conv_block2 = ConvBlock(128, 256, 32, 2, pad = 15, use_bn = True, norm_type = norm_type, use_sn = use_sn)
+
+		list_blocks = [ResBlock(256, 256, norm_type, use_sn = use_sn)] * self.res_num
+		self.resblocks = nn.Sequential(*list_blocks)
+
+		self.deconv_block1 = DeConvBlock(256, 128, 32, 2, pad = 15, output_pad = 1, use_bn = True, norm_type = norm_type, use_sn = use_sn)
+		self.deconv_block2 = DeConvBlock(128, 64, 32, 2, pad = 15, output_pad = 1, use_bn = True, norm_type = norm_type, use_sn = use_sn)
+		self.deconv = nn.Conv2d(64, oc, 31, 1, 0)
+
+		if(use_sn):
+			self.conv = SpectralNorm(self.conv)
+			self.deconv = SpectralNorm(self.deconv)
 
 		self.tanh = nn.Tanh()
 
 		for m in self.modules():
 			if(isinstance(m, nn.Conv1d) or isinstance(m, nn.ConvTranspose1d)):
 				nn.init.xavier_normal_(m.weight)
-	
+
 	def forward(self, x):
-		ens = []
 		out = x
 
-		for i, cur_enc in enumerate(self.enc_convs):
-			if(i == 0):
-				out = cur_enc(out)
-			else:
-				out = cur_enc(self.leaky_relu(out))
-			ens.append(out)
-
-		for i, cur_dec in enumerate(self.dec_convs):
-			cur_enc = ens[len(self.cur_dim) - 1 - i]
-			if(i == 0):
-				out = cur_dec(self.relu(cur_enc))
-			else:
-				out = cur_dec(self.relu(torch.cat([out, cur_enc], 1)))
-				
-		del ens
+		# (bs, ic, sz, sz)
+		out = self.reflection_pad1(out)
+		# (bs, ic, sz+6, sz+6)
+		out = self.conv(out)
+		# (bs, 64, sz, sz)
+		out = self.conv_block1(out)
+		# (bs, 128, sz / 2, sz / 2)
+		out = self.conv_block2(out)
+		# (bs, 256, sz / 4, sz / 4)
+		out = self.resblocks(out)
+		# (bs, 256, sz / 4, sz / 4)
+		out = self.deconv_block1(out)
+		# (bs, 128, sz / 2, sz / 2)
+		out = self.deconv_block2(out)
+		# (bs, 64, sz, sz)
+		out = self.reflection_pad2(out)
+		# (bs, 64, sz+3, sz+3)
+		out = self.deconv(out)
+		# (bs, oc, sz, sz)
 		out = self.tanh(out)
+		# (bs, oc, sz, sz)
 		return out

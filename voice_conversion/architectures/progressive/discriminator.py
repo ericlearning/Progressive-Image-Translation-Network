@@ -152,6 +152,7 @@ class PatchGan_D_70x70_One_Input(nn.Module):
 				self.blocks.append(ConvBlock(self.res_num[i+1], self.res_num[i], 4, 1, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn))
 			else:
 				self.blocks.append(ConvBlock(self.res_num[i+1], self.res_num[i], 4, 2, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn))
+			#self.blocks.append(ConvBlock(self.res_num[i], self.res_num[i], 3, 1, 1, use_bn = True, norm_type = norm_type, activation_type = 'leakyrelu', use_sn = self.use_sn))
 
 		self.last_block = ConvBlock(self.res_num[0], 1, 4, 1, 1, use_bn = False, activation_type = None, use_sn = self.use_sn)
 

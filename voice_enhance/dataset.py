@@ -43,23 +43,25 @@ class Audio_Dataset():
 		wave_shape_1 = input_wav.shape[1]
 		wave_shape_2 = target_wav.shape[1]
 
+		g = min(wave_shape_1, wave_shape_2)
+
 		if(sr1 != sr2):
 			print('Warning: SampleRate does not match')
 			print(sr1, sr2)
 
-		if(wave_shape_1 != wave_shape_2):
-			print('Warning: Wave Shape does not match')
-			print(wave_shape_1, wave_shape_2)
+		#if(wave_shape_1 != wave_shape_2):
+			#print('Warning: Wave Shape does not match')
+			#print(wave_shape_1, wave_shape_2)
 
-		t1 = random.randint(0, wave_shape+1-16384)
+		t1 = random.randint(0, max(g+1-16384, 0))
 		t2 = t1+16384
-		if(t2>wave_shape):
-			t2 = wave_shape
+		if(t2>g):
+			t2 = g
 
 		input_wav = input_wav[:, t1:t2]
 		target_wav = target_wav[:, t1:t2]
 
-		if(t2 == wave_shape):
+		if(t2 == g):
 			#input_wav = librosa.util.fix_length(input_wav, 16384)
 			#target_wav = librosa.util.fix_length(target_wav, 16384)
 			input_wav = torchaudio.functional.pad_trim(input_wav, 0, 16384, 1, 0)

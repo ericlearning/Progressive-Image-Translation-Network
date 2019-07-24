@@ -104,10 +104,11 @@ class DeConvBlock(nn.Module):
 		out = self.act(out)
 		return out
 
-class PatchGan_D_70x70_One_Input(nn.Module):
-	def __init__(self, ic, use_sigmoid = True, norm_type = 'instancenorm', use_sn = False):
-		super(PatchGan_D_70x70_One_Input, self).__init__()
-		self.ic = ic
+class PatchGan_D_70x70(nn.Module):
+	def __init__(self, ic_1, ic_2, use_sigmoid = True, norm_type = 'instancenorm', use_sn = False):
+		super(PatchGan_D_70x70, self).__init__()
+		self.ic_1 = ic_1
+		self.ic_2 = ic_2
 		self.use_sn = use_sn
 		self.use_sigmoid = use_sigmoid
 
@@ -116,7 +117,7 @@ class PatchGan_D_70x70_One_Input(nn.Module):
 		cur_block_ic = 1
 		for i, dim in enumerate(self.cur_dim):
 			if(i == 0):
-				block = ConvBlock(self.ic, self.cur_dim[0], 32, 2, 15, use_bn = False, use_sn = self.use_sn, activation_type = 'leakyrelu')
+				block = ConvBlock(self.ic_1 + self.ic_2, self.cur_dim[0], 32, 2, 15, use_bn = False, use_sn = self.use_sn, activation_type = 'leakyrelu')
 			elif(i == len(self.cur_dim) - 1):
 				block = ConvBlock(self.cur_dim[i-1], self.cur_dim[i], 32, 2, 15, use_bn = False, use_sn = self.use_sn, activation_type = None)
 			else:
@@ -128,13 +129,11 @@ class PatchGan_D_70x70_One_Input(nn.Module):
 		self.nothing = Nothing()
 
 		for m in self.modules():
-			if(isinstance(m, nn.Conv2d)):
-				m.weight.data.normal_(0.0, 0.02)
-				if(m.bias is not None):
-					m.bias.data.zero_()
+			if(isinstance(m, nn.Conv1d) or isinstance(m, nn.ConvTranspose1d)):
+				nn.init.xavier_normal_(m.weight)
 
-	def forward(self, x):
-		out = x
+	def forward(self, x1, x2):
+		out = torch.cat([x1, x2], 1)
 		out = self.model(out)
 		if(self.use_sigmoid == True):
 			out = self.sigmoid(out)
