@@ -4,6 +4,7 @@ import torch.nn as nn
 from torchvision import transforms
 from dataset import Dataset
 from architectures.baseline.unet import UNet_G
+from architectures.virtual.virtual_unet import Virtual_UNet_G
 from architectures.baseline.discriminator import PatchGan_D_70x70
 from trainers.trainer import Trainer
 from utils.utils import save, load

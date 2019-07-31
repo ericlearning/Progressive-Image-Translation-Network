@@ -97,6 +97,8 @@ def load(filename, netD_A, netD_B, netG_A2B, netG_B2A, optD_A, optD_B, optG):
 
 def get_sample_images_list(inputs):
 	val_data, netG_A2B, netG_B2A, device = inputs[0], inputs[1], inputs[2], inputs[3]
+	netG_A2B.eval()
+	netG_B2A.eval()
 	with torch.no_grad():
 		A = val_data[0].to(device)
 		B = val_data[1].to(device)
@@ -141,10 +143,15 @@ def get_sample_images_list(inputs):
 		sample_images_list.extend(sample_A_Reconstruction_images_list)
 		sample_images_list.extend(sample_B_Reconstruction_images_list)
 
+	netG_A2B.train()
+	netG_B2A.train()
+
 	return sample_images_list
 
 def get_sample_images_list_noise(inputs):
 	val_data, netG_A2B, netG_B2A, noise, device = inputs[0], inputs[1], inputs[2], inputs[3], inputs[4]
+	netG_A2B.eval()
+	netG_B2A.eval()
 	with torch.no_grad():
 		A = val_data[0].to(device).repeat(3, 1, 1, 1)
 		B = val_data[1].to(device).repeat(3, 1, 1, 1)
@@ -190,10 +197,15 @@ def get_sample_images_list_noise(inputs):
 		sample_images_list.extend(sample_B2A_images_list)
 		sample_images_list.extend(sample_B_Reconstruction_images_list)
 
+	netG_A2B.train()
+	netG_B2A.train()
+
 	return sample_images_list
 
 def get_sample_images_list_pro(inputs):
 	val_data, netG_A2B, netG_B2A, p, device = inputs[0], inputs[1], inputs[2], inputs[3], inputs[4]
+	netG_A2B.eval()
+	netG_B2A.eval()
 	with torch.no_grad():
 		A = val_data[0].to(device)
 		B = val_data[1].to(device)
@@ -238,10 +250,15 @@ def get_sample_images_list_pro(inputs):
 		sample_images_list.extend(sample_A_Reconstruction_images_list)
 		sample_images_list.extend(sample_B_Reconstruction_images_list)
 
+	netG_A2B.train()
+	netG_B2A.train()
+
 	return sample_images_list
 
 def get_sample_images_list_noise_pro(inputs):
 	val_data, netG_A2B, netG_B2A, noise, p, device = inputs[0], inputs[1], inputs[2], inputs[3], inputs[4], inputs[5]
+	netG_A2B.eval()
+	netG_B2A.eval()
 	with torch.no_grad():
 		A = val_data[0].to(device).repeat(3, 1, 1, 1)
 		B = val_data[1].to(device).repeat(3, 1, 1, 1)
@@ -286,6 +303,9 @@ def get_sample_images_list_noise_pro(inputs):
 		sample_images_list.extend(sample_B_images_list)
 		sample_images_list.extend(sample_B2A_images_list)
 		sample_images_list.extend(sample_B_Reconstruction_images_list)
+
+	netG_A2B.train()
+	netG_B2A.train()
 
 	return sample_images_list
 

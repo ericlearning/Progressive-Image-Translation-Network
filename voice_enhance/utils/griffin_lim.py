@@ -151,9 +151,12 @@ def griffin_lim(input_, griffin_lim_iter, n_fft, win_length, hop_length, pre_emp
 		tmp = input_ * tmp3
 
 	y = np.real(librosa.core.istft(tmp, win_length = win_length, hop_length = hop_length))
-	wave = np.append(y[0], y[1:] - pre_emphasis_rate * y[:-1])
 
-	return wave
+	if(pre_emphasis_rate == None):
+		return y
+	else:
+		y = np.append(y[0], y[1:] - pre_emphasis_rate * y[:-1])
+		return y
 
 def wav2spec_file(wav_file, out_file, sample_rate = 22050, pre_emphasis_rate = 0.97, n_fft = 2048, n_mels = 256, win_length = 1000, hop_length = 250, power = 1, shrink_size = 1, threshold = 5):
 	y = read_audio(wav_file, sample_rate, pre_emphasis_rate)
@@ -165,7 +168,7 @@ def wav2spec_folder(wav_folder, out_folder, sample_rate = 22050, pre_emphasis_ra
 	for fn in os.listdir(wav_folder):
 		in_file = os.path.join(wav_folder, fn)
 		out_file = os.path.join(out_folder, fn)
-		wav2spec_file(wav_file, out_file, sample_rate, pre_emphasis_rate, n_fft, n_mels, win_length, hop_length, power, shrink_size, threshold)
+		wav2spec_file(in_file, out_file, sample_rate, pre_emphasis_rate, n_fft, n_mels, win_length, hop_length, power, shrink_size, threshold)
 
 def change_sr_file(wav_file, out_file, sample_rate):
 	y = read_audio(wav_file, sample_rate, None)

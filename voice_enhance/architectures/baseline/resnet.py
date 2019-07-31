@@ -7,9 +7,9 @@ import torch.nn.utils.spectral_norm as SpectralNorm
 
 def get_norm(norm_type, size):
 	if(norm_type == 'batchnorm'):
-		return nn.BatchNorm2d(size)
+		return nn.BatchNorm1d(size)
 	elif(norm_type == 'instancenorm'):
-		return nn.InstanceNorm2d(size)
+		return nn.InstanceNorm1d(size)
 
 class Nothing(nn.Module):
 	def __init__(self):
@@ -128,23 +128,23 @@ class ResBlock(nn.Module):
 		self.use_sn = use_sn
 
 		self.relu = nn.ReLU(inplace = True)
-		self.reflection_pad1 = nn.ReflectionPad2d(15)
-		self.reflection_pad2 = nn.ReflectionPad2d(15)
+		self.reflection_pad1 = nn.ReflectionPad1d(15)
+		self.reflection_pad2 = nn.ReflectionPad1d(15)
 
-		self.conv1 = nn.Conv1d(ic, oc, 32, 2, 0, bias = False)
-		self.conv2 = nn.Conv1d(oc, oc, 32, 2, 0, bias = False)
+		self.conv1 = nn.Conv1d(ic, oc, 31, 1, 0, bias = False)
+		self.conv2 = nn.Conv1d(oc, oc, 31, 1, 0, bias = False)
 
 		if(self.use_sn == True):
 			self.conv1 = SpectralNorm(self.conv1)
 			self.conv2 = SpectralNorm(self.conv2)
-		else:
-			if(self.norm_type == 'batchnorm'):
-				self.bn1 = nn.BatchNorm1d(oc)
-				self.bn2 = nn.BatchNorm1d(oc)
+			
+		if(self.norm_type == 'batchnorm'):
+			self.bn1 = nn.BatchNorm1d(oc)
+			self.bn2 = nn.BatchNorm1d(oc)
 
-			elif(self.norm_type == 'instancenorm'):
-				self.bn1 = nn.InstanceNorm1d(oc)
-				self.bn2 = nn.InstanceNorm1d(oc)
+		elif(self.norm_type == 'instancenorm'):
+			self.bn1 = nn.InstanceNorm1d(oc)
+			self.bn2 = nn.InstanceNorm1d(oc)
 
 	def forward(self, x):
 		out = self.reflection_pad1(x)
@@ -156,20 +156,10 @@ class ResBlock(nn.Module):
 
 # ResNet Generator
 class ResNet_G(nn.Module):
-	def __init__(self, ic, oc, sz, nz = None, norm_type = 'instancenorm', use_sn = False):
+	def __init__(self, ic, oc, nz = None, norm_type = 'instancenorm', use_sn = False):
 		super(ResNet_G, self).__init__()
 		self.ic = ic
 		self.oc = oc
-		self.sz = sz
-		self.res_nums = {
-			'16' : 2,
-			'32' : 3,
-			'64' : 4,
-			'128' : 5,
-			'256' : 6,
-			'512' : 7
-		}
-		self.res_num = self.res_nums[str(sz)]
 		self.nz = nz
 
 		self.relu = nn.ReLU(inplace = True)
@@ -186,12 +176,12 @@ class ResNet_G(nn.Module):
 		self.conv_block1 = ConvBlock(64, 128, 32, 2, pad = 15, use_bn = True, norm_type = norm_type, use_sn = use_sn)
 		self.conv_block2 = ConvBlock(128, 256, 32, 2, pad = 15, use_bn = True, norm_type = norm_type, use_sn = use_sn)
 
-		list_blocks = [ResBlock(256, 256, norm_type, use_sn = use_sn)] * self.res_num
+		list_blocks = [ResBlock(256, 256, norm_type, use_sn = use_sn)] * 6
 		self.resblocks = nn.Sequential(*list_blocks)
 
-		self.deconv_block1 = DeConvBlock(256, 128, 32, 2, pad = 15, output_pad = 1, use_bn = True, norm_type = norm_type, use_sn = use_sn)
-		self.deconv_block2 = DeConvBlock(128, 64, 32, 2, pad = 15, output_pad = 1, use_bn = True, norm_type = norm_type, use_sn = use_sn)
-		self.deconv = nn.Conv2d(64, oc, 31, 1, 0)
+		self.deconv_block1 = DeConvBlock(256, 128, 32, 2, pad = 15, output_pad = 0, use_bn = True, norm_type = norm_type, use_sn = use_sn)
+		self.deconv_block2 = DeConvBlock(128, 64, 32, 2, pad = 15, output_pad = 0, use_bn = True, norm_type = norm_type, use_sn = use_sn)
+		self.deconv = nn.Conv1d(64, oc, 31, 1, 0)
 
 		if(use_sn):
 			self.conv = SpectralNorm(self.conv)

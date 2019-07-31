@@ -38,24 +38,25 @@ def generate_all(cnt):
 	wave = griffin_lim(stft, griffin_lim_iter, n_fft, win_length, hop_length, pre_emphasis_rate)
 	librosa.output.write_wav(path3, wave, sample_rate, norm = True)
 
-	# target : loads audio, saves as spec
-	path1 = os.path.join(target_wav_dir, source_wav_list[cnt])
-	path2 = os.path.join(target_spec_save_dir, source_wav_list[cnt][:-4]+'.png')
-	_ = spec_from_path_to_path(path1, path2)
+	if(have_target):
+		# target : loads audio, saves as spec
+		path1 = os.path.join(target_wav_dir, source_wav_list[cnt])
+		path2 = os.path.join(target_spec_save_dir, source_wav_list[cnt][:-4]+'.png')
+		_ = spec_from_path_to_path(path1, path2)
 
-	# target : loads spec, saves as audio
-	path3 = os.path.join(target_wav_save_dir, source_wav_list[cnt])
-	spec = cv2.imread(path2)
-	stft = mel_to_stft(spectrogram_img_to_mel(spec, threshold), sample_rate, n_fft, n_mels, shrink_size, power)
-	wave = griffin_lim(stft, griffin_lim_iter, n_fft, win_length, hop_length, pre_emphasis_rate)
-	librosa.output.write_wav(path3, wave, sample_rate, norm = True)
+		# target : loads spec, saves as audio
+		path3 = os.path.join(target_wav_save_dir, source_wav_list[cnt])
+		spec = cv2.imread(path2)
+		stft = mel_to_stft(spectrogram_img_to_mel(spec, threshold), sample_rate, n_fft, n_mels, shrink_size, power)
+		wave = griffin_lim(stft, griffin_lim_iter, n_fft, win_length, hop_length, pre_emphasis_rate)
+		librosa.output.write_wav(path3, wave, sample_rate, norm = True)
 
 	for i in range(noise_per_image):
 		# path to save generated spec
 		path3 = os.path.join(out_spec_save_dir, source_wav_list[cnt][:-4] + '-' + str(i) + '.png')
 		noise = generate_noise(1, nz, device)
 		# generate spec
-		out = generate(netG, spec_src, noise, oc, sz, device)
+		out = generate(netG, spec_src, noise, oc, device)
 		# save it in the path
 		cv2.imwrite(path3, out)
 
@@ -74,6 +75,8 @@ def generate_all(cnt):
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 nz, noise_per_image = 8, 20
+
+have_target = True
 
 source_wav_dir = 'samples/source'
 source_wav_list = os.listdir(source_wav_dir)

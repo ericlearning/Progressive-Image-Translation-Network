@@ -119,10 +119,14 @@ class PatchGan_D_70x70(nn.Module):
 			if(i == 0):
 				block = ConvBlock(self.ic_1 + self.ic_2, self.cur_dim[0], 32, 2, 15, use_bn = False, use_sn = self.use_sn, activation_type = 'leakyrelu')
 			elif(i == len(self.cur_dim) - 1):
-				block = ConvBlock(self.cur_dim[i-1], self.cur_dim[i], 32, 2, 15, use_bn = False, use_sn = self.use_sn, activation_type = None)
+				block = ConvBlock(self.cur_dim[i-1], self.cur_dim[i], 32, 2, 15, use_bn = True, norm_type = norm_type, use_sn = self.use_sn, activation_type = 'leakyrelu')
 			else:
 				block = ConvBlock(self.cur_dim[i-1], self.cur_dim[i], 32, 2, 15, use_bn = True, norm_type = norm_type, use_sn = self.use_sn, activation_type = 'leakyrelu')
 			self.model.append(block)
+
+		block = ConvBlock(self.cur_dim[-1], 1, 1, use_bn = True, use_sn = self.use_sn, activation_type = None)
+		self.linear = nn.Linear(8, 1)
+		self.model.append(block)
 		self.model = nn.Sequential(*self.model)
 
 		self.sigmoid = nn.Sigmoid()
@@ -134,7 +138,9 @@ class PatchGan_D_70x70(nn.Module):
 
 	def forward(self, x1, x2):
 		out = torch.cat([x1, x2], 1)
-		out = self.model(out)
+		out = self.model(out).reshape(x1.shape[0], -1)
+		out = self.linear(out)
+		
 		if(self.use_sigmoid == True):
 			out = self.sigmoid(out)
 		else:

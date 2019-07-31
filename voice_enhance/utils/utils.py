@@ -1,4 +1,4 @@
-).import os
+import os
 import cv2
 import glob
 import torch
@@ -74,27 +74,41 @@ def get_display_samples(samples, num_samples_x, num_samples_y):
 				display[i*sz:(i+1)*sz, j*sz:(j+1)*sz, :] = cv2.cvtColor(samples[i*num_samples_x+j], cv2.COLOR_BGR2RGB)
 	return display.astype(np.uint8)
 
-def save(filename, netD, netG, optD, optG):
-	state = {
-		'netD' : netD.state_dict(),
-		'netG' : netG.state_dict(),
-		'optD' : optD.state_dict(),
-		'optG' : optG.state_dict()
-	}
+def save(filename, netD, netG, optD, optG, use_ref = False):
+	if(use_ref):
+		state = {
+			'netD' : netD.state_dict(),
+			'netG' : netG.state_dict(),
+			'optD' : optD.state_dict(),
+			'optG' : optG.state_dict(),
+			'ref' : netG.ref
+		}
+	else:
+		state = {
+			'netD' : netD.state_dict(),
+			'netG' : netG.state_dict(),
+			'optD' : optD.state_dict(),
+			'optG' : optG.state_dict()
+		}
+
 	torch.save(state, filename)
 
-def load(filename, netD, netG, optD, optG):
+def load(filename, netD, netG, optD, optG, use_ref = False):
 	state = torch.load(filename)
 	netD.load_state_dict(state['netD'])
 	netG.load_state_dict(state['netG'])
 	optD.load_state_dict(state['optD'])
 	optG.load_state_dict(state['optG'])
 
+	if(use_ref):
+		netG.ref = state['ref']
+
 def get_sample_images_list(inputs):
 	# hard coded variables
 	n_fft, win_length, hop_length, sample_rate, n_mels, power, shrink_size, threshold = 2048, 1000, 250, 22050, 256, 1, 1, 5
 
 	val_data, netG, device = inputs[0], inputs[1], inputs[2]
+	netG.eval()
 	with torch.no_grad():
 		val_x = val_data[0].to(device)
 		val_y = val_data[1].to(device)
@@ -122,6 +136,8 @@ def get_sample_images_list(inputs):
 	sample_images_list.extend(sample_input_images_list)
 	sample_images_list.extend(sample_fake_images_list)
 	sample_images_list.extend(sample_output_images_list)
+
+	netG.train()
 
 	return sample_images_list
 

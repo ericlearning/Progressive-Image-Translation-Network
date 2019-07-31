@@ -4,6 +4,7 @@ import numpy as np
 import copy
 import scipy
 from tqdm import tqdm
+from multiprocessing import Pool
 
 # sample_rate : 22050
 # pre_emphasis_rate : 0.97
@@ -151,21 +152,34 @@ def griffin_lim(input_, griffin_lim_iter, n_fft, win_length, hop_length, pre_emp
 		tmp = input_ * tmp3
 
 	y = np.real(librosa.core.istft(tmp, win_length = win_length, hop_length = hop_length))
-	wave = np.append(y[0], y[1:] - pre_emphasis_rate * y[:-1])
 
-	return wave
+	if(pre_emphasis_rate == None):
+		return y
+	else:
+		y = np.append(y[0], y[1:] - pre_emphasis_rate * y[:-1])
+		return y
 
-def wav2spec_file(wav_file, out_file, sample_rate = 22050, pre_emphasis_rate = 0.97, n_fft = 2048, n_mels = 256, win_length = 1000, hop_length = 250, power = 1, shrink_size = 1, threshold = 5):
+def wav2spec_file(files, sample_rate = 22050, pre_emphasis_rate = None, n_fft = 2048, n_mels = 256, win_length = 1000, hop_length = 250, power = 1, shrink_size = 1, threshold = 5):
+	(wav_file, out_file) = files
 	y = read_audio(wav_file, sample_rate, pre_emphasis_rate)
 	stft = get_stft(y, n_fft, win_length, hop_length)
 	mel = get_mel(stft, sample_rate, n_fft, n_mels, power, shrink_size)
 	mel_to_spectrogram(mel, threshold, out_file)
 
-def wav2spec_folder(wav_folder, out_folder, sample_rate = 22050, pre_emphasis_rate = 0.97, n_fft = 2048, n_mels = 256, win_length = 1000, hop_length = 250, power = 1, shrink_size = 1, threshold = 5):
+def wav2spec_folder(wav_folder, out_folder, sample_rate = 22050, pre_emphasis_rate = None, n_fft = 2048, n_mels = 256, win_length = 1000, hop_length = 250, power = 1, shrink_size = 1, threshold = 5):
 	for fn in os.listdir(wav_folder):
 		in_file = os.path.join(wav_folder, fn)
-		out_file = os.path.join(out_folder, fn)
-		wav2spec_file(wav_file, out_file, sample_rate, pre_emphasis_rate, n_fft, n_mels, win_length, hop_length, power, shrink_size, threshold)
+		out_file = os.path.join(out_folder, fn)[:-3]+'png'
+		wav2spec_file((in_file, out_file), sample_rate, pre_emphasis_rate, n_fft, n_mels, win_length, hop_length, power, shrink_size, threshold)
+
+def wav2spec_folder_multi(wav_folder, out_folder):
+	inputs = []
+	for fn in os.listdir(wav_folder):
+		in_file = os.path.join(wav_folder, fn)
+		out_file = os.path.join(out_folder, fn)[:-3]+'png'
+		inputs.append((in_file, out_file))
+	with Pool(10) as p:
+		r = list(tqdm(p.imap(wav2spec_file, inputs), total = len(inputs)))
 
 def change_sr_file(wav_file, out_file, sample_rate):
 	y = read_audio(wav_file, sample_rate, None)
