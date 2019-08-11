@@ -95,6 +95,32 @@ def load(filename, netD_A, netD_B, netG_A2B, netG_B2A, optD_A, optD_B, optG):
 	optD_B.load_state_dict(state['optD_B'])
 	optG.load_state_dict(state['optG'])
 
+def save_extra(filename, netD_A, netD_B, netD_A_2, netD_B_2, netG_A2B, netG_B2A, optD_A, optD_B, optG):
+	state = {
+		'netD_A' : netD_A.state_dict(),
+		'netD_B' : netD_B.state_dict(),
+		'netD_A_2' : netD_A_2.state_dict(),
+		'netD_B_2' : netD_B_2.state_dict(),
+		'netG_A2B' : netG_A2B.state_dict(),
+		'netG_B2A' : netG_B2A.state_dict(),
+		'optD_A' : optD_A.state_dict(),
+		'optD_B' : optD_B.state_dict(),
+		'optG' : optG.state_dict()
+	}
+	torch.save(state, filename)
+
+def load_extra(filename, netD_A, netD_B, netD_A_2, netD_B_2, netG_A2B, netG_B2A, optD_A, optD_B, optG):
+	state = torch.load(filename)
+	netD_A.load_state_dict(state['netD_A'])
+	netD_B.load_state_dict(state['netD_B'])
+	netD_A_2.load_state_dict(state['netD_A_2'])
+	netD_B_2.load_state_dict(state['netD_B_2'])
+	netG_A2B.load_state_dict(state['netG_A2B'])
+	netG_B2A.load_state_dict(state['netG_B2A'])
+	optD_A.load_state_dict(state['optD_A'])
+	optD_B.load_state_dict(state['optD_B'])
+	optG.load_state_dict(state['optG'])
+
 def get_sample_images_list(inputs):
 	val_data, netG_A2B, netG_B2A, device = inputs[0], inputs[1], inputs[2], inputs[3]
 	netG_A2B.eval()

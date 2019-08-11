@@ -95,9 +95,9 @@ class Trainer():
 					fake_b = self.netG_A2B(a, noise, p)
 
 					self.optimizerD_A.zero_grad()
-					c_xr = self.netD_A(a)
+					c_xr = self.netD_A(a, p)
 					c_xr = c_xr.view(-1)
-					c_xf = self.netD_A(fake_a.detach())
+					c_xf = self.netD_A(fake_a.detach(), p)
 					c_xf = c_xf.view(-1)
 					if(self.require_type == 0 or self.require_type == 1):
 						errD_A = self.loss.d_loss(c_xr, c_xf)
@@ -109,9 +109,9 @@ class Trainer():
 					self.optimizerD_A.step()
 
 					self.optimizerD_B.zero_grad()
-					c_xr = self.netD_B(b)
+					c_xr = self.netD_B(b, p)
 					c_xr = c_xr.view(-1)
-					c_xf = self.netD_B(fake_b.detach())
+					c_xf = self.netD_B(fake_b.detach(), p)
 					c_xf = c_xf.view(-1)
 					if(self.require_type == 0 or self.require_type == 1):
 						errD_B = self.loss.d_loss(c_xr, c_xf)
@@ -148,20 +148,20 @@ class Trainer():
 					if(self.require_type == 0):
 						c_xr_a = None
 						c_xr_b = None
-						c_xf_a = self.netD_A(fake_a)		# (bs, 1, 1, 1)
+						c_xf_a = self.netD_A(fake_a, p)		# (bs, 1, 1, 1)
 						c_xf_a = c_xf_a.view(-1)						# (bs)	
-						c_xf_b = self.netD_B(fake_b)		# (bs, 1, 1, 1)
+						c_xf_b = self.netD_B(fake_b, p)		# (bs, 1, 1, 1)
 						c_xf_b = c_xf_b.view(-1)						# (bs)	
 						errG_a = self.loss.g_loss(c_xf_a)
 						errG_b = self.loss.g_loss(c_xf_b)
 					if(self.require_type == 1 or self.require_type == 2):
-						c_xr_a = self.netD_A(a)
+						c_xr_a = self.netD_A(a, p)
 						c_xr_a = c_xr_a.view(-1)
-						c_xr_b = self.netD_B(b)
+						c_xr_b = self.netD_B(b, p)
 						c_xr_b = c_xr_b.view(-1)
-						c_xf_a = self.netD_A(fake_a)		# (bs, 1, 1, 1)
+						c_xf_a = self.netD_A(fake_a, p)		# (bs, 1, 1, 1)
 						c_xf_a = c_xf_a.view(-1)						# (bs)	
-						c_xf_b = self.netD_B(fake_b)		# (bs, 1, 1, 1)
+						c_xf_b = self.netD_B(fake_b, p)		# (bs, 1, 1, 1)
 						c_xf_b = c_xf_b.view(-1)						# (bs)	
 						errG_a = self.loss.g_loss(c_xr_a, c_xf_a)
 						errG_b = self.loss.g_loss(c_xr_b, c_xf_b)
